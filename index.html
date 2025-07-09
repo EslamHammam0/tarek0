@@ -2,13 +2,14 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>نظام فواتير طارق</title>
-  <script src="="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <title>نظام فواتير طارق - ربط Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 </head>
 <body>
   <h1>🔥 نظام فواتير طارق مربوط بـ Firebase 🔥</h1>
-  <p id="status">جاري تحميل البيانات...</p>
+  <p id="status">⏳ جاري الاتصال بـ Firebase...</p>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBUhkNuW4HmYe7YtErEYALrsnc7dOhXxRk",
@@ -21,13 +22,22 @@
       measurementId: "G-38CV51MHB6"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      const db = firebase.database(app);
 
-    // كتابة بيانات تجريبية
-    db.ref("demo").set({ message: "تم الربط بنجاح" })
-      .then(() => document.getElementById("status").innerText = "✅ تم حفظ البيانات في Firebase.")
-      .catch((err) => document.getElementById("status").innerText = "❌ فشل في الحفظ: " + err.message);
+      const demoRef = db.ref("demo");
+
+      demoRef.set({ message: "تم الربط بنجاح" })
+        .then(() => {
+          document.getElementById("status").innerText = "✅ تم حفظ البيانات في Firebase.";
+        })
+        .catch((err) => {
+          document.getElementById("status").innerText = "❌ خطأ أثناء الحفظ: " + err.message;
+        });
+    } catch (e) {
+      document.getElementById("status").innerText = "❌ فشل التهيئة: " + e.message;
+    }
   </script>
 </body>
 </html>
