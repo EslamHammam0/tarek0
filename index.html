@@ -9,9 +9,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -320,8 +320,24 @@
     let currentCustomerIndex = null;
     let operationCount = 0;
 
-    // تهيئة Firebase
-    function initializeFirebase() {
+    // دالة لإظهار إشعار
+    function showToast(message, type = 'success') {
+      if (typeof Toastify !== 'undefined') {
+        Toastify({
+          text: message,
+          duration: 5000,
+          gravity: "top",
+          position: "right",
+          style: { background: type === 'success' ? '#2a9d8f' : '#dc2626' }
+        }).showToast();
+      } else {
+        console.error("Toastify غير متاح:", message);
+        alert(message); // عرض تنبيه بديل
+      }
+    }
+
+    // دالة لمحاولة تهيئة Firebase مع إعادة المحاولة
+    function initializeFirebase(retries = 3, delay = 1000) {
       return new Promise((resolve, reject) => {
         if (typeof firebase !== 'undefined') {
           try {
@@ -346,8 +362,13 @@
             showToast("❌ فشل التهيئة: " + e.message, "error");
             reject(e);
           }
+        } else if (retries > 0) {
+          console.warn(`Firebase غير متاح، جاري إعادة المحاولة (${retries} متبقية)...`);
+          setTimeout(() => {
+            initializeFirebase(retries - 1, delay).then(resolve).catch(reject);
+          }, delay);
         } else {
-          console.error("Firebase غير متاح");
+          console.error("Firebase غير متاح بعد المحاولات");
           showToast("❌ فشل التهيئة: مكتبة Firebase لم تتحمل", "error");
           reject(new Error("Firebase غير متاح"));
         }
@@ -359,7 +380,9 @@
       initializeFirebase().then(() => {
         if (firebaseInitialized) {
           customersRef.on('value', (snapshot) => {
-            data = snapshot.val() || [];
+            const snapshotData = snapshot.val();
+            data = snapshotData ? Object.values(snapshotData) : [];
+            localStorage.setItem("customersData", JSON.stringify(data));
             renderCustomers();
             renderGeneralStats();
           }, (error) => {
@@ -387,6 +410,7 @@
         customersRef.set(data)
           .then(() => {
             console.log("تم حفظ البيانات في Firebase");
+            localStorage.setItem("customersData", JSON.stringify(data));
             showToast("تم حفظ البيانات بنجاح", "success");
           })
           .catch((error) => {
@@ -403,21 +427,6 @@
         if (confirm("لقد قمت بـ 10 عمليات! هل تريد تصدير البيانات لحفظها؟")) {
           exportData();
         }
-      }
-    }
-
-    // إظهار إشعار
-    function showToast(message, type = 'success') {
-      if (typeof Toastify !== 'undefined') {
-        Toastify({
-          text: message,
-          duration: 3000,
-          gravity: "top",
-          position: "right",
-          style: { background: type === 'success' ? '#2a9d8f' : '#dc2626' }
-        }).showToast();
-      } else {
-        console.log("Toastify غير متاح:", message);
       }
     }
 
@@ -440,13 +449,14 @@
         showToast("Firebase غير متاح. لا يمكن تسجيل الدخول.", "error");
         return;
       }
-      firebase.auth().signInWithEmailAndPassword(user + "@example.com", pass)
+      firebase.auth().signInWithEmailAndPassword(user + "@tarek0.firebaseapp.com", pass)
         .then((userCredential) => {
           currentUser = userCredential.user;
           document.getElementById("loginScreen").style.display = "none";
           showToast("تم تسجيل الدخول بنجاح", "success");
         })
         .catch((error) => {
+          console.error("خطأ في تسجيل الدخول:", error);
           showToast("بيانات الدخول غير صحيحة: " + error.message, "error");
         });
     }
@@ -517,8 +527,7 @@
       const total = quantity * unitPrice;
       const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
       if (firebaseInitialized) {
-        const customerKeys = Object.keys(data);
-        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+        customersRef.child(currentCustomerIndex).child('invoices').push(invoice)
           .then(() => {
             closeModal();
             showToast("تم إضافة فاتورة البنر بنجاح");
@@ -565,8 +574,7 @@
       const total = quantity * unitPrice;
       const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
       if (firebaseInitialized) {
-        const customerKeys = Object.keys(data);
-        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+        customersRef.child(currentCustomerIndex).child('invoices').push(invoice)
           .then(() => {
             closeGenericModal();
             showToast("تم إضافة الفاتورة العامة بنجاح");
@@ -600,172 +608,116 @@
       const sc = document.getElementById("searchBox").value.toLowerCase();
       const cont = document.getElementById("customersContainer");
       cont.innerHTML = "";
-      if (firebaseInitialized) {
-        const customerKeys = Object.keys(data);
-        customerKeys.forEach((key, i) => {
-          const cust = data[key];
-          if (!cust.name.toLowerCase().includes(sc)) return;
-          const filtered = cust.invoices ? cust.invoices.filter(inv => inv.description !== "دفعة تحصيل") : [];
-          const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
-          const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
-          const rem = tot - paid;
-          const div = document.createElement("div");
-          div.className = "section";
-          const rows = (cust.invoices || []).map((inv, j) => `
-            <tr>
-              <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
-              <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
-              <td><button class="delete-btn" onclick="deleteInvoice('${key}', ${j})"><i class="fas fa-trash"></i> حذف</button></td>
-            </tr>`).join('');
-          div.innerHTML = `
-            <h3>${cust.name} - ${cust.phone}
-              <button class="edit-btn" onclick="editCustomer('${key}')"><i class="fas fa-edit"></i></button>
-              <button class="delete-btn" onclick="deleteCustomer('${key}')"><i class="fas fa-trash"></i></button>
-            </h3>
-            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> إضافة فاتورة</button>
-            <button class="collect-btn" onclick="collectPayment('${key}')"><i class="fas fa-money-bill"></i> تحصيل</button>
-            <button class="print-btn" onclick="exportCustomerOnly('${key}')"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
-            <p><strong>إجمالي:</strong> ${tot} | <strong>مدفوع:</strong> ${paid} | <strong>متبقي:</strong> ${rem}</p>
-            <table><thead><tr><th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th><th>حذف</th></tr></thead><tbody>${rows}</tbody></table>
-            <div class="summary">
-              <div><i class="fas fa-coins"></i> الإجمالي: ${tot}</div>
-              <div><i class="fas fa-check-circle"></i> المدفوع: ${paid}</div>
-              <div><i class="fas fa-hourglass-half"></i> المتبقي: ${rem}</div>
-            </div>`;
-          cont.appendChild(div);
-        });
-      } else {
-        data.forEach((cust, i) => {
-          if (!cust.name.toLowerCase().includes(sc)) return;
-          const filtered = cust.invoices.filter(inv => inv.description !== "دفعة تحصيل");
-          const tot = filtered.reduce((s, inv) => s + inv.total, 0);
-          const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
-          const rem = tot - paid;
-          const div = document.createElement("div");
-          div.className = "section";
-          const rows = cust.invoices.map((inv, j) => `
-            <tr>
-              <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
-              <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
-              <td><button class="delete-btn" onclick="deleteInvoiceLocal(${i}, ${j})"><i class="fas fa-trash"></i> حذف</button></td>
-            </tr>`).join('');
-          div.innerHTML = `
-            <h3>${cust.name} - ${cust.phone}
-              <button class="edit-btn" onclick="editCustomerLocal(${i})"><i class="fas fa-edit"></i></button>
-              <button class="delete-btn" onclick="deleteCustomerLocal(${i})"><i class="fas fa-trash"></i></button>
-            </h3>
-            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> إضافة فاتورة</button>
-            <button class="collect-btn" onclick="collectPaymentLocal(${i})"><i class="fas fa-money-bill"></i> تحصيل</button>
-            <button class="print-btn" onclick="exportCustomerOnlyLocal(${i})"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
-            <p><strong>إجمالي:</strong> ${tot} | <strong>مدفوع:</strong> ${paid} | <strong>متبقي:</strong> ${rem}</p>
-            <table><thead><tr><th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th><th>حذف</th></tr></thead><tbody>${rows}</tbody></table>
-            <div class="summary">
-              <div><i class="fas fa-coins"></i> الإجمالي: ${tot}</div>
-              <div><i class="fas fa-check-circle"></i> المدفوع: ${paid}</div>
-              <div><i class="fas fa-hourglass-half"></i> المتبقي: ${rem}</div>
-            </div>`;
-          cont.appendChild(div);
-        });
-      }
+      data.forEach((cust, i) => {
+        if (!cust.name.toLowerCase().includes(sc)) return;
+        const filtered = cust.invoices ? cust.invoices.filter(inv => inv.description !== "دفعة تحصيل") : [];
+        const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
+        const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
+        const rem = tot - paid;
+        const div = document.createElement("div");
+        div.className = "section";
+        const rows = (cust.invoices || []).map((inv, j) => `
+          <tr>
+            <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
+            <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
+            <td><button class="delete-btn" onclick="deleteInvoice(${i}, ${j})"><i class="fas fa-trash"></i> حذف</button></td>
+          </tr>`).join('');
+        div.innerHTML = `
+          <h3>${cust.name} - ${cust.phone}
+            <button class="edit-btn" onclick="editCustomer(${i})"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" onclick="deleteCustomer(${i})"><i class="fas fa-trash"></i></button>
+          </h3>
+          <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> إضافة فاتورة</button>
+          <button class="collect-btn" onclick="collectPayment(${i})"><i class="fas fa-money-bill"></i> تحصيل</button>
+          <button class="print-btn" onclick="exportCustomerOnly(${i})"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+          <p><strong>إجمالي:</strong> ${tot} | <strong>مدفوع:</strong> ${paid} | <strong>متبقي:</strong> ${rem}</p>
+          <table><thead><tr><th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th><th>حذف</th></tr></thead><tbody>${rows}</tbody></table>
+          <div class="summary">
+            <div><i class="fas fa-coins"></i> الإجمالي: ${tot}</div>
+            <div><i class="fas fa-check-circle"></i> المدفوع: ${paid}</div>
+            <div><i class="fas fa-hourglass-half"></i> المتبقي: ${rem}</div>
+          </div>`;
+        cont.appendChild(div);
+      });
     }
 
-    // حذف عميل (Firebase)
-    function deleteCustomer(key) {
+    // حذف عميل
+    function deleteCustomer(index) {
       if (!currentUser && firebaseInitialized) {
         showToast("الرجاء تسجيل الدخول أولاً", "error");
-        return;
-      }
-      if (!firebaseInitialized) {
-        showToast("Firebase غير متاح. استخدم deleteCustomerLocal.", "error");
-        return;
-      }
-      if (!confirm(`هل أنت متأكد من حذف العميل ${data[key].name}؟`)) return;
-      const pass = prompt("أدخل كلمة المرور لحذف العميل:");
-      if (pass === "1234") {
-        customersRef.child(key).remove()
-          .then(() => showToast("تم حذف العميل بنجاح"))
-          .catch((error) => {
-            console.error("خطأ في الحذف:", error);
-            showToast("فشل الحذف من Firebase. جرب محليًا.", "error");
-          });
-      } else {
-        showToast("كلمة المرور خاطئة", "error");
-      }
-    }
-
-    // حذف عميل (محلي)
-    function deleteCustomerLocal(index) {
-      if (firebaseInitialized) {
-        showToast("Firebase متاح. استخدم deleteCustomer.", "error");
         return;
       }
       if (!confirm(`هل أنت متأكد من حذف العميل ${data[index].name}؟`)) return;
       const pass = prompt("أدخل كلمة المرور لحذف العميل:");
       if (pass === "1234") {
-        data.splice(index, 1);
-        saveData();
-        renderCustomers();
-        showToast("تم حذف العميل بنجاح");
+        if (firebaseInitialized) {
+          customersRef.child(index).remove()
+            .then(() => {
+              data.splice(index, 1);
+              saveData();
+              renderCustomers();
+              showToast("تم حذف العميل بنجاح");
+            })
+            .catch((error) => {
+              console.error("خطأ في الحذف:", error);
+              showToast("فشل الحذف من Firebase. تم الحذف محليًا.", "error");
+              data.splice(index, 1);
+              saveData();
+              renderCustomers();
+            });
+        } else {
+          data.splice(index, 1);
+          saveData();
+          renderCustomers();
+          showToast("تم حذف العميل بنجاح");
+        }
       } else {
         showToast("كلمة المرور خاطئة", "error");
       }
     }
 
-    // حذف فاتورة (Firebase)
-    function deleteInvoice(custKey, invIndex) {
+    // حذف فاتورة
+    function deleteInvoice(custIndex, invIndex) {
       if (!currentUser && firebaseInitialized) {
         showToast("الرجاء تسجيل الدخول أولاً", "error");
-        return;
-      }
-      if (!firebaseInitialized) {
-        showToast("Firebase غير متاح. استخدم deleteInvoiceLocal.", "error");
         return;
       }
       if (!confirm(`هل أنت متأكد من حذف الفاتورة؟`)) return;
       const pass = prompt("أدخل كلمة المرور لحذف الفاتورة:");
       if (pass === "1234") {
-        const invoicesRef = customersRef.child(custKey).child('invoices');
-        const invoiceKeys = Object.keys(data[custKey].invoices || {});
-        invoicesRef.child(invoiceKeys[invIndex]).remove()
-          .then(() => showToast("تم حذف الفاتورة بنجاح"))
-          .catch((error) => {
-            console.error("خطأ في الحذف:", error);
-            showToast("فشل الحذف من Firebase. جرب محليًا.", "error");
-          });
+        if (firebaseInitialized) {
+          customersRef.child(custIndex).child('invoices').child(invIndex).remove()
+            .then(() => {
+              data[custIndex].invoices.splice(invIndex, 1);
+              saveData();
+              renderCustomers();
+              showToast("تم حذف الفاتورة بنجاح");
+            })
+            .catch((error) => {
+              console.error("خطأ في الحذف:", error);
+              showToast("فشل الحذف من Firebase. تم الحذف محليًا.", "error");
+              data[custIndex].invoices.splice(invIndex, 1);
+              saveData();
+              renderCustomers();
+            });
+        } else {
+          data[custIndex].invoices.splice(invIndex, 1);
+          saveData();
+          renderCustomers();
+          showToast("تم حذف الفاتورة بنجاح");
+        }
       } else {
         showToast("كلمة المرور خاطئة", "error");
       }
     }
 
-    // حذف فاتورة (محلي)
-    function deleteInvoiceLocal(custIndex, invIndex) {
-      if (firebaseInitialized) {
-        showToast("Firebase متاح. استخدم deleteInvoice.", "error");
-        return;
-      }
-      if (!confirm(`هل أنت متأكد من حذف الفاتورة؟`)) return;
-      const pass = prompt("أدخل كلمة المرور لحذف الفاتورة:");
-      if (pass === "1234") {
-        data[custIndex].invoices.splice(invIndex, 1);
-        saveData();
-        renderCustomers();
-        showToast("تم حذف الفاتورة بنجاح");
-      } else {
-        showToast("كلمة المرور خاطئة", "error");
-      }
-    }
-
-    // تحصيل دفعة (Firebase)
-    function collectPayment(key) {
+    // تحصيل دفعة
+    function collectPayment(index) {
       if (!currentUser && firebaseInitialized) {
         showToast("الرجاء تسجيل الدخول أولاً", "error");
         return;
       }
-      if (!firebaseInitialized) {
-        showToast("Firebase غير متاح. استخدم collectPaymentLocal.", "error");
-        return;
-      }
-      const customer = data[key];
+      const customer = data[index];
       const remaining = (customer.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.remaining || 0), 0);
       const amount = Number(prompt(`المتبقي: ${remaining}\nأدخل المبلغ:`));
       if (isNaN(amount) || amount <= 0) return showToast("الرجاء إدخال مبلغ صحيح وموجب", "error");
@@ -779,66 +731,71 @@
         remaining: 0,
         date: new Date().toLocaleString("ar-EG")
       };
-      customersRef.child(key).child('invoices').push(paymentInvoice);
-      let toPay = amount;
-      for (let inv of (customer.invoices || [])) {
-        if (inv.description !== "دفعة تحصيل" && (inv.remaining || 0) > 0 && toPay > 0) {
-          const pay = Math.min(inv.remaining, toPay);
-          inv.paid = (inv.paid || 0) + pay;
-          inv.remaining = (inv.remaining || 0) - pay;
-          toPay -= pay;
-        }
-      }
-      customersRef.child(key).child('invoices').set(customer.invoices || [])
-        .then(() => showToast("تم تحصيل الدفعة بنجاح"))
-        .catch((error) => {
-          console.error("خطأ في التحصيل:", error);
-          showToast("فشل التحصيل من Firebase. جرب محليًا.", "error");
-        });
-    }
-
-    // تحصيل دفعة (محلي)
-    function collectPaymentLocal(index) {
       if (firebaseInitialized) {
-        showToast("Firebase متاح. استخدم collectPayment.", "error");
-        return;
-      }
-      const customer = data[index];
-      const remaining = customer.invoices.filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + inv.remaining, 0);
-      const amount = Number(prompt(`المتبقي: ${remaining}\nأدخل المبلغ:`));
-      if (isNaN(amount) || amount <= 0) return showToast("الرجاء إدخال مبلغ صحيح وموجب", "error");
-      if (!confirm(`هل تريد تحصيل مبلغ ${amount}؟`)) return;
-      const paymentInvoice = {
-        description: "دفعة تحصيل",
-        quantity: 1,
-        unitPrice: amount,
-        total: amount,
-        paid: amount,
-        remaining: 0,
-        date: new Date().toLocaleString("ar-EG")
-      };
-      customer.invoices.push(paymentInvoice);
-      let toPay = amount;
-      for (let inv of customer.invoices) {
-        if (inv.description !== "دفعة تحصيل" && inv.remaining > 0 && toPay > 0) {
-          const pay = Math.min(inv.remaining, toPay);
-          inv.paid += pay;
-          inv.remaining -= pay;
-          toPay -= pay;
+        customersRef.child(index).child('invoices').push(paymentInvoice)
+          .then(() => {
+            let toPay = amount;
+            for (let inv of customer.invoices || []) {
+              if (inv.description !== "دفعة تحصيل" && (inv.remaining || 0) > 0 && toPay > 0) {
+                const pay = Math.min(inv.remaining, toPay);
+                inv.paid = (inv.paid || 0) + pay;
+                inv.remaining = (inv.remaining || 0) - pay;
+                toPay -= pay;
+              }
+            }
+            customersRef.child(index).child('invoices').set(customer.invoices || [])
+              .then(() => {
+                showToast("تم تحصيل الدفعة بنجاح");
+                renderCustomers();
+              })
+              .catch((error) => {
+                console.error("خطأ في التحصيل:", error);
+                showToast("فشل التحصيل من Firebase. تم التحصيل محليًا.", "error");
+                data[index].invoices.push(paymentInvoice);
+                saveData();
+                renderCustomers();
+              });
+          })
+          .catch((error) => {
+            console.error("خطأ في إضافة دفعة التحصيل:", error);
+            showToast("فشل التحصيل من Firebase. تم التحصيل محليًا.", "error");
+            data[index].invoices.push(paymentInvoice);
+            let toPay = amount;
+            for (let inv of data[index].invoices) {
+              if (inv.description !== "دفعة تحصيل" && inv.remaining > 0 && toPay > 0) {
+                const pay = Math.min(inv.remaining, toPay);
+                inv.paid += pay;
+                inv.remaining -= pay;
+                toPay -= pay;
+              }
+            }
+            saveData();
+            renderCustomers();
+          });
+      } else {
+        data[index].invoices.push(paymentInvoice);
+        let toPay = amount;
+        for (let inv of data[index].invoices) {
+          if (inv.description !== "دفعة تحصيل" && inv.remaining > 0 && toPay > 0) {
+            const pay = Math.min(inv.remaining, toPay);
+            inv.paid += pay;
+            inv.remaining -= pay;
+            toPay -= pay;
+          }
         }
+        saveData();
+        renderCustomers();
+        showToast("تم تحصيل الدفعة بنجاح");
       }
-      saveData();
-      renderCustomers();
-      showToast("تم تحصيل الدفعة بنجاح");
     }
 
-    // تصدير بيانات العميل كـ PDF (Firebase)
-    function exportCustomerOnly(key) {
+    // تصدير بيانات العميل كـ PDF
+    function exportCustomerOnly(index) {
       if (!currentUser && firebaseInitialized) {
         showToast("الرجاء تسجيل الدخول أولاً", "error");
         return;
       }
-      const cust = data[key];
+      const cust = data[index];
       const filtered = (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل");
       const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
       const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
@@ -875,98 +832,42 @@
             margin: 0.5,
             jsPDF: { format: 'a4' }
           }).save(`فواتير-${cust.name}.pdf`);
+          showToast("تم تصدير PDF بنجاح");
         } else {
           showToast("فشل في تحميل مكتبة التحويل إلى PDF.", "error");
         }
       }, 300);
-      showToast("تم تصدير PDF بنجاح");
     }
 
-    // تصدير بيانات العميل كـ PDF (محلي)
-    function exportCustomerOnlyLocal(index) {
-      if (firebaseInitialized) {
-        showToast("Firebase متاح. استخدم exportCustomerOnly.", "error");
-        return;
-      }
-      const cust = data[index];
-      const filtered = cust.invoices.filter(inv => inv.description !== "دفعة تحصيل");
-      const tot = filtered.reduce((s, inv) => s + inv.total, 0);
-      const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
-      const rem = tot - paid;
-      const rows = cust.invoices.map(inv => `
-        <tr>
-          <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
-          <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
-        </tr>`).join('');
-      let html = `
-        <div style="font-family: 'Tajawal'; padding:20px; direction:rtl;">
-          <h2 style="text-align:center;">مطبعة طارق أبوهمام</h2>
-          <h3>بيانات العميل</h3>
-          <p><strong>الاسم:</strong> ${cust.name}</p>
-          <p><strong>الهاتف:</strong> ${cust.phone}</p>
-          <h3>الفواتير</h3>
-          <table style="width:100%; border-collapse:collapse; border:1px solid #ccc;">
-            <thead><tr style="background:#0d3b66; color:white;">
-              <th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <div style="margin-top:20px;">
-            <p><strong>الإجمالي:</strong> ${tot}</p>
-            <p><strong>المدفوع:</strong> ${paid}</p>
-            <p><strong>المتبقي:</strong> ${rem}</p>
-          </div>
-        </div>
-      `;
-      document.getElementById("invoicePrint").innerHTML = html;
-      setTimeout(() => {
-        if (typeof html2pdf !== 'undefined') {
-          html2pdf().from(document.getElementById("invoicePrint")).set({
-            margin: 0.5,
-            jsPDF: { format: 'a4' }
-          }).save(`فواتير-${cust.name}.pdf`);
-        } else {
-          showToast("فشل في تحميل مكتبة التحويل إلى PDF.", "error");
-        }
-      }, 300);
-      showToast("تم تصدير PDF بنجاح");
-    }
-
-    // تعديل رقم هاتف العميل (Firebase)
-    function editCustomer(key) {
+    // تعديل رقم هاتف العميل
+    function editCustomer(index) {
       if (!currentUser && firebaseInitialized) {
         showToast("الرجاء تسجيل الدخول أولاً", "error");
         return;
       }
-      if (!firebaseInitialized) {
-        showToast("Firebase غير متاح. استخدم editCustomerLocal.", "error");
-        return;
-      }
-      const newPhone = prompt("أدخل رقم الهاتف الجديد:", data[key].phone);
-      if (newPhone && newPhone.trim()) {
-        customersRef.child(key).update({ phone: newPhone.trim() })
-          .then(() => showToast("تم تعديل رقم الهاتف بنجاح"))
-          .catch((error) => {
-            console.error("خطأ في التعديل:", error);
-            showToast("فشل التعديل من Firebase. جرب محليًا.", "error");
-          });
-      } else {
-        showToast("الرجاء إدخال رقم هاتف صحيح", "error");
-      }
-    }
-
-    // تعديل رقم هاتف العميل (محلي)
-    function editCustomerLocal(index) {
-      if (firebaseInitialized) {
-        showToast("Firebase متاح. استخدم editCustomer.", "error");
-        return;
-      }
       const newPhone = prompt("أدخل رقم الهاتف الجديد:", data[index].phone);
       if (newPhone && newPhone.trim()) {
-        data[index].phone = newPhone.trim();
-        saveData();
-        renderCustomers();
-        showToast("تم تعديل رقم الهاتف بنجاح");
+        if (firebaseInitialized) {
+          customersRef.child(index).update({ phone: newPhone.trim() })
+            .then(() => {
+              data[index].phone = newPhone.trim();
+              saveData();
+              renderCustomers();
+              showToast("تم تعديل رقم الهاتف بنجاح");
+            })
+            .catch((error) => {
+              console.error("خطأ في التعديل:", error);
+              showToast("فشل التعديل من Firebase. تم التعديل محليًا.", "error");
+              data[index].phone = newPhone.trim();
+              saveData();
+              renderCustomers();
+            });
+        } else {
+          data[index].phone = newPhone.trim();
+          saveData();
+          renderCustomers();
+          showToast("تم تعديل رقم الهاتف بنجاح");
+        }
       } else {
         showToast("الرجاء إدخال رقم هاتف صحيح", "error");
       }
@@ -1023,8 +924,8 @@
 
     // عرض الإحصائيات العامة
     function renderGeneralStats() {
-      const total = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.total || 0), 0), 0);
-      const paid = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.paid || 0), 0), 0);
+      const total = data.reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.total || 0), 0), 0);
+      const paid = data.reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.paid || 0), 0), 0);
       const remaining = total - paid;
       document.getElementById("generalStats").innerHTML = `
         <div><i class="fas fa-coins"></i> الإجمالي: ${total || 0}</div>
