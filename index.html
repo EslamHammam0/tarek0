@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>‰Ÿ«„ «·⁄„·«¡ Ê«·›Ê« Ì— - „ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      direction: rtl;
+      background: #eef3f7;
+      padding: 20px;
+      margin: 0;
+      font-size: 17px;
+    }
+    h1, h2, h3 {
+      color: #0d3b66;
+      margin: 0 0 10px;
+    }
+    .section {
+      background: #ffffff;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      width: 100%;
+    }
+    input, button, select, table {
+      font-family: 'Tajawal', sans-serif;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px 5px 5px 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    .add-btn { background: #0077b6; }
+    .add-btn:hover { background: #005f87; }
+    .collect-btn { background: #2a9d8f; }
+    .collect-btn:hover { background: #1e7d6b; }
+    .print-btn { background: #f4a261; }
+    .print-btn:hover { background: #e07b33; }
+    .delete-btn { background: crimson; }
+    .delete-btn:hover { background: #a30000; }
+    .edit-btn { background: orange; }
+    .edit-btn:hover { background: #cc8400; }
+    .export-btn { background: #6b7280; }
+    .export-btn:hover { background: #4b5563; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: right;
+    }
+    th {
+      background: #0d3b66;
+      color: white;
+    }
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      margin-top: 10px;
+      gap: 10px;
+    }
+    .summary div {
+      background: #ffffff;
+      padding: 10px;
+      border-radius: 6px;
+      flex: 1 1 120px;
+      text-align: center;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 95%;
+      max-width: 400px;
+    }
+    .hidden-print { display: none; }
+    .login-screen {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(135deg, #0d3b66, #0077b6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    .login-box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-logo {
+      width: 300px;
+      height: auto;
+      margin-bottom: 30px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .login-box h2 {
+      color: #0d3b66;
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: right;
+    }
+    .input-group label {
+      display: block;
+      color: #0d3b66;
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .input-group i {
+      margin-left: 8px;
+      color: #0077b6;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #0077b6;
+      box-shadow: 0 0 5px rgba(0, 119, 182, 0.3);
+    }
+    .login-btn {
+      background: #0077b6;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .login-btn:hover {
+      background: #005f87;
+      transform: translateY(-2px);
+    }
+    .login-btn i {
+      margin-left: 8px;
+    }
+    .login-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(to right, #f4a261, #0077b6);
+      border-radius: 15px 15px 0 0;
+    }
+    @media (max-width: 600px) {
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      th, td {
+        white-space: nowrap;
+      }
+      .summary {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .login-box {
+        padding: 20px;
+        width: 95%;
+      }
+      .login-logo {
+        width: 100px;
+      }
+      .login-box h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <img src="https://i.servimg.com/u/f28/15/53/23/87/ae_a_010.jpg" alt="·ÊÃÊ „ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„" class="login-logo" />
+      <h2>„—Õ»« »ﬂ ›Ì ‰Ÿ«„ „ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„</h2>
+      <div class="input-group">
+        <label><i class="fas fa-user"></i> «”„ «·„” Œœ„:</label>
+        <input id="username" type="text" placeholder="√œŒ· «”„ «·„” Œœ„" />
+      </div>
+      <div class="input-group">
+        <label><i class="fas fa-lock"></i> ﬂ·„… «·„—Ê—:</label>
+        <input id="password" type="password" placeholder="√œŒ· ﬂ·„… «·„—Ê—" />
+      </div>
+      <button onclick="login()" class="login-btn"><i class="fas fa-sign-in-alt"></i>  ”ÃÌ· «·œŒÊ·</button>
+    </div>
+  </div>
+
+  <h1>„ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„ - ‰Ÿ«„ «·⁄„·«¡ Ê«·›Ê« Ì—</h1>
+  <div class="section">
+    <h2>≈Õ’«∆Ì«  ⁄«„…</h2>
+    <div class="summary" id="generalStats"></div>
+  </div>
+  <div class="section">
+    <h2>≈œ«—… «·»Ì«‰« </h2>
+    <button onclick="exportData()" class="export-btn"><i class="fas fa-download"></i>  ’œÌ— «·»Ì«‰« </button>
+    <input type="file" id="importData" accept=".json" onchange="importData(event)" style="display: inline-block; width: auto;" />
+  </div>
+  <div class="section">
+    <h2>»ÕÀ ⁄‰ ⁄„Ì·</h2>
+    <input oninput="renderCustomers()" placeholder="«ﬂ » «”„ «·⁄„Ì·..." id="searchBox" type="text" />
+  </div>
+  <div class="section">
+    <h2>≈÷«›… ⁄„Ì· ÃœÌœ</h2>
+    <label>«”„ «·⁄„Ì·:</label>
+    <input id="customerName" type="text" />
+    <label>—ﬁ„ «·Â« ›:</label>
+    <input id="customerPhone" type="text" />
+    <button onclick="addCustomer()" class="add-btn"><i class="fas fa-plus"></i> ≈÷«›…</button>
+  </div>
+  <div class="section">
+    <h2>«·⁄„·«¡</h2>
+    <div id="customersContainer"></div>
+  </div>
+
+  <div class="modal" id="invoiceModal">
+    <div class="modal-content">
+      <h3>≈÷«›… ›« Ê—… »‰—</h3>
+      <label>‰Ê⁄ «·ÿ»«⁄…:</label>
+      <select id="bannerType">
+        <option value="»‰—">»‰—</option>
+        <option value="›·Ìﬂ”">›·Ìﬂ”</option>
+        <option value="›Ì‰Ì·">›Ì‰Ì·</option>
+      </select>
+      <label>«·⁄—÷ („ —):</label>
+      <input type="number" id="bannerWidth" min="0" step="0.01" />
+      <label>«·«— ›«⁄ („ —):</label>
+      <input type="number" id="bannerHeight" min="0" step="0.01" />
+      <label>”⁄— «·„ —:</label>
+      <input type="number" id="bannerPrice" min="0" step="0.01" />
+      <button onclick="saveBannerInvoice()" class="add-btn"><i class="fas fa-save"></i> Õ›Ÿ «·›« Ê—…</button>
+      <button onclick="closeModal()" class="delete-btn"><i class="fas fa-times"></i> ≈·€«¡</button>
+    </div>
+  </div>
+
+  <div class="modal" id="genericInvoiceModal">
+    <div class="modal-content">
+      <h3>≈÷«›… ›« Ê—… ⁄«„…</h3>
+      <label>«·Ê’›:</label>
+      <input type="text" id="descInput" />
+      <label>«·ﬂ„Ì…:</label>
+      <input type="number" id="qtyInput" min="1" />
+      <label>”⁄— «·ÊÕœ…:</label>
+      <input type="number" id="unitPriceInput" min="0" step="0.01" />
+      <button onclick="saveGenericInvoice()" class="add-btn"><i class="fas fa-save"></i> Õ›Ÿ «·›« Ê—…</button>
+      <button onclick="closeGenericModal()" class="delete-btn"><i class="fas fa-times"></i> ≈·€«¡</button>
+    </div>
+  </div>
+  <div class="hidden-print" id="invoicePrint"></div>
+
+  <script>
+    let firebaseInitialized = false;
+    let customersRef = null;
+
+    //  ÂÌ∆… Firebase
+    try {
+      const firebaseConfig = {
+  apiKey: "AIzaSyAP-9e_9muXDwRp3IOOjsHNPe2fGd1YjDg",
+  authDomain: "tarek-print-system.firebaseapp.com",
+  databaseURL: "https://tarek-print-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tarek-print-system",
+  storageBucket: "tarek-print-system.firebasestorage.app",
+  messagingSenderId: "782251533097",
+  appId: "1:782251533097:web:ddf0b2449c5f646e13cd38",
+  measurementId: "G-JWV5E3VFZT"
+};
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      customersRef = database.ref('customers');
+      firebaseInitialized = true;
+    } catch (e) {
+      console.error("Œÿ√ ›Ì  ÂÌ∆… Firebase:", e);
+      showToast("›‘· ›Ì «·« ’«· »‹ Firebase. Ì „ «” Œœ«„ localStorage ﬂ»œÌ·.", "error");
+    }
+
+    let data = firebaseInitialized ? [] : JSON.parse(localStorage.getItem("customersData") || "[]");
+    let currentCustomerIndex = null;
+    let operationCount = 0;
+
+    //  Õ„Ì· «·»Ì«‰« 
+    if (firebaseInitialized) {
+      customersRef.on('value', (snapshot) => {
+        data = snapshot.val() || [];
+        renderCustomers();
+        renderGeneralStats();
+      }, (error) => {
+        console.error("Œÿ√ ›Ì  Õ„Ì· «·»Ì«‰« :", error);
+        showToast("›‘· ›Ì  Õ„Ì· «·»Ì«‰«  „‰ Firebase. Ì „ «” Œœ«„ localStorage.", "error");
+        data = JSON.parse(localStorage.getItem("customersData") || "[]");
+        renderCustomers();
+        renderGeneralStats();
+      });
+    } else {
+      renderCustomers();
+      renderGeneralStats();
+    }
+
+    // Õ›Ÿ «·»Ì«‰« 
+    function saveData() {
+      if (firebaseInitialized) {
+        customersRef.set(data).catch((error) => {
+          console.error("Œÿ√ ›Ì Õ›Ÿ «·»Ì«‰« :", error);
+          localStorage.setItem("customersData", JSON.stringify(data));
+        });
+      } else {
+        localStorage.setItem("customersData", JSON.stringify(data));
+      }
+      operationCount++;
+      if (operationCount % 10 === 0) {
+        if (confirm("·ﬁœ ﬁ„  »‹ 10 ⁄„·Ì« ! Â·  —Ìœ  ’œÌ— «·»Ì«‰«  ·Õ›ŸÂ«ø")) {
+          exportData();
+        }
+      }
+    }
+
+    // ≈ŸÂ«— ≈‘⁄«—
+    function showToast(message, type = 'success') {
+      if (typeof Toastify !== 'undefined') {
+        Toastify({
+          text: message,
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: { background: type === 'success' ? '#2a9d8f' : '#dc2626' }
+        }).showToast();
+      } else {
+        console.log("Toastify €Ì— „ «Õ:", message);
+      }
+    }
+
+    //  ‰»ÌÂ ﬁ»· ≈€·«ﬁ «·’›Õ…
+    window.onbeforeunload = function() {
+      if (data.length > 0) {
+        return "Â‰«ﬂ »Ì«‰«  ·„ Ì „ Õ›ŸÂ« Œ«—ÃÌ«. Â·  —Ìœ  ’œÌ—Â« ﬁ»· «·Œ—ÊÃø";
+      }
+    };
+
+    //  ”ÃÌ· «·œŒÊ·
+    function login() {
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value;
+      if (user === "«”·«„" && pass === "50003322") {
+        document.getElementById("loginScreen").style.display = "none";
+        showToast(" „  ”ÃÌ· «·œŒÊ· »‰Ã«Õ");
+      } else {
+        showToast("»Ì«‰«  «·œŒÊ· €Ì— ’ÕÌÕ…", "error");
+      }
+    }
+
+    // ≈÷«›… ⁄„Ì· ÃœÌœ
+    function addCustomer() {
+      const name = document.getElementById("customerName").value.trim();
+      const phone = document.getElementById("customerPhone").value.trim();
+      if (!name || !phone) return showToast("«„·√ Ã„Ì⁄ «·ÕﬁÊ·", "error");
+      const newCustomer = { name, phone, invoices: [] };
+      if (firebaseInitialized) {
+        customersRef.push(newCustomer)
+          .then(() => {
+            document.getElementById("customerName").value = "";
+            document.getElementById("customerPhone").value = "";
+            showToast(" „ ≈÷«›… «·⁄„Ì· »‰Ã«Õ");
+          })
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì ≈÷«›… «·⁄„Ì·:", error);
+            data.push(newCustomer);
+            saveData();
+            renderCustomers();
+            showToast(" „ ≈÷«›… «·⁄„Ì· „Õ·Ì« »”»» „‘ﬂ·… ›Ì Firebase.", "error");
+          });
+      } else {
+        data.push(newCustomer);
+        saveData();
+        renderCustomers();
+        showToast(" „ ≈÷«›… «·⁄„Ì· »‰Ã«Õ");
+      }
+    }
+
+    // ≈÷«›… ›« Ê—…
+    function addInvoice(index) {
+      currentCustomerIndex = index;
+      const isBanner = confirm("Â· ‰Ê⁄ «·›« Ê—… »‰— / ›·Ìﬂ” / ›Ì‰Ì·ø");
+      if (isBanner) {
+        document.getElementById("invoiceModal").style.display = "flex";
+      } else {
+        document.getElementById("genericInvoiceModal").style.display = "flex";
+      }
+    }
+
+    // Õ›Ÿ ›« Ê—… »‰—
+    function saveBannerInvoice() {
+      const type = document.getElementById("bannerType").value;
+      const w = Number(document.getElementById("bannerWidth").value);
+      const h = Number(document.getElementById("bannerHeight").value);
+      const unitPrice = Number(document.getElementById("bannerPrice").value);
+      if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+        return showToast("«·—Ã«¡ ≈œŒ«· ﬁÌ„ ’ÕÌÕ… Ê„ÊÃ»…", "error");
+      }
+      if (!confirm("Â·  —Ìœ Õ›Ÿ ›« Ê—… «·»‰—ø")) return;
+      const description = `${type} ${w}◊${h}`;
+      const quantity = w * h;
+      const total = quantity * unitPrice;
+      const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+          .then(() => {
+            closeModal();
+            showToast(" „ ≈÷«›… ›« Ê—… «·»‰— »‰Ã«Õ");
+          })
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì Õ›Ÿ «·›« Ê—…:", error);
+            data[currentCustomerIndex].invoices.push(invoice);
+            saveData();
+            renderCustomers();
+            showToast(" „ Õ›Ÿ «·›« Ê—… „Õ·Ì« »”»» „‘ﬂ·… ›Ì Firebase.", "error");
+          });
+      } else {
+        data[currentCustomerIndex].invoices.push(invoice);
+        saveData();
+        closeModal();
+        renderCustomers();
+        showToast(" „ ≈÷«›… ›« Ê—… «·»‰— »‰Ã«Õ");
+      }
+    }
+
+    // ≈€·«ﬁ ‰«›–… ›« Ê—… «·»‰—
+    function closeModal() {
+      document.getElementById("invoiceModal").style.display = "none";
+      document.getElementById("bannerType").value = "»‰—";
+      document.getElementById("bannerWidth").value = "";
+      document.getElementById("bannerHeight").value = "";
+      document.getElementById("bannerPrice").value = "";
+    }
+
+    // Õ›Ÿ ›« Ê—… ⁄«„…
+    function saveGenericInvoice() {
+      const description = document.getElementById("descInput").value.trim();
+      const quantity = Number(document.getElementById("qtyInput").value);
+      const unitPrice = Number(document.getElementById("unitPriceInput").value);
+      if (!description || isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+        return showToast("«·—Ã«¡ ≈œŒ«· ﬁÌ„ ’ÕÌÕ… Ê„ÊÃ»…", "error");
+      }
+      if (!confirm("Â·  —Ìœ Õ›Ÿ «·›« Ê—… «·⁄«„…ø")) return;
+      const total = quantity * unitPrice;
+      const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+          .then(() => {
+            closeGenericModal();
+            showToast(" „ ≈÷«›… «·›« Ê—… «·⁄«„… »‰Ã«Õ");
+          })
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì Õ›Ÿ «·›« Ê—…:", error);
+            data[currentCustomerIndex].invoices.push(invoice);
+            saveData();
+            renderCustomers();
+            showToast(" „ Õ›Ÿ «·›« Ê—… „Õ·Ì« »”»» „‘ﬂ·… ›Ì Firebase.", "error");
+          });
+      } else {
+        data[currentCustomerIndex].invoices.push(invoice);
+        saveData();
+        closeGenericModal();
+        renderCustomers();
+        showToast(" „ ≈÷«›… «·›« Ê—… «·⁄«„… »‰Ã«Õ");
+      }
+    }
+
+    // ≈€·«ﬁ ‰«›–… «·›« Ê—… «·⁄«„…
+    function closeGenericModal() {
+      document.getElementById("genericInvoiceModal").style.display = "none";
+      document.getElementById("descInput").value = "";
+      document.getElementById("qtyInput").value = "";
+      document.getElementById("unitPriceInput").value = "";
+    }
+
+    // ⁄—÷ «·⁄„·«¡ Ê«·≈Õ’«∆Ì« 
+    function renderCustomers() {
+      const sc = document.getElementById("searchBox").value.toLowerCase();
+      const cont = document.getElementById("customersContainer");
+      cont.innerHTML = "";
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customerKeys.forEach((key, i) => {
+          const cust = data[key];
+          if (!cust.name.toLowerCase().includes(sc)) return;
+          const filtered = cust.invoices ? cust.invoices.filter(inv => inv.description !== "œ›⁄…  Õ’Ì·") : [];
+          const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
+          const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
+          const rem = tot - paid;
+          const div = document.createElement("div");
+          div.className = "section";
+          const rows = (cust.invoices || []).map((inv, j) => `
+            <tr>
+              <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
+              <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
+              <td><button class="delete-btn" onclick="deleteInvoice('${key}', ${j})"><i class="fas fa-trash"></i> Õ–›</button></td>
+            </tr>`).join('');
+          div.innerHTML = `
+            <h3>${cust.name} - ${cust.phone}
+              <button class="edit-btn" onclick="editCustomer('${key}')"><i class="fas fa-edit"></i></button>
+              <button class="delete-btn" onclick="deleteCustomer('${key}')"><i class="fas fa-trash"></i></button>
+            </h3>
+            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> ≈÷«›… ›« Ê—…</button>
+            <button class="collect-btn" onclick="collectPayment('${key}')"><i class="fas fa-money-bill"></i>  Õ’Ì·</button>
+            <button class="print-btn" onclick="exportCustomerOnly('${key}')"><i class="fas fa-file-pdf"></i>  ’œÌ— PDF</button>
+            <p><strong>≈Ã„«·Ì:</strong> ${tot} | <strong>„œ›Ê⁄:</strong> ${paid} | <strong>„ »ﬁÌ:</strong> ${rem}</p>
+            <table><thead><tr><th>«· «—ÌŒ</th><th>«·Ê’›</th><th>ﬂ„Ì…</th><th>”⁄—</th><th>≈Ã„«·Ì</th><th>„œ›Ê⁄</th><th>„ »ﬁÌ</th><th>Õ–›</th></tr></thead><tbody>${rows}</tbody></table>
+            <div class="summary">
+              <div><i class="fas fa-coins"></i> «·≈Ã„«·Ì: ${tot}</div>
+              <div><i class="fas fa-check-circle"></i> «·„œ›Ê⁄: ${paid}</div>
+              <div><i class="fas fa-hourglass-half"></i> «·„ »ﬁÌ: ${rem}</div>
+            </div>`;
+          cont.appendChild(div);
+        });
+      } else {
+        data.forEach((cust, i) => {
+          if (!cust.name.toLowerCase().includes(sc)) return;
+          const filtered = cust.invoices.filter(inv => inv.description !== "œ›⁄…  Õ’Ì·");
+          const tot = filtered.reduce((s, inv) => s + inv.total, 0);
+          const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
+          const rem = tot - paid;
+          const div = document.createElement("div");
+          div.className = "section";
+          const rows = cust.invoices.map((inv, j) => `
+            <tr>
+              <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
+              <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
+              <td><button class="delete-btn" onclick="deleteInvoiceLocal(${i}, ${j})"><i class="fas fa-trash"></i> Õ–›</button></td>
+            </tr>`).join('');
+          div.innerHTML = `
+            <h3>${cust.name} - ${cust.phone}
+              <button class="edit-btn" onclick="editCustomerLocal(${i})"><i class="fas fa-edit"></i></button>
+              <button class="delete-btn" onclick="deleteCustomerLocal(${i})"><i class="fas fa-trash"></i></button>
+            </h3>
+            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> ≈÷«›… ›« Ê—…</button>
+            <button class="collect-btn" onclick="collectPaymentLocal(${i})"><i class="fas fa-money-bill"></i>  Õ’Ì·</button>
+            <button class="print-btn" onclick="exportCustomerOnlyLocal(${i})"><i class="fas fa-file-pdf"></i>  ’œÌ— PDF</button>
+            <p><strong>≈Ã„«·Ì:</strong> ${tot} | <strong>„œ›Ê⁄:</strong> ${paid} | <strong>„ »ﬁÌ:</strong> ${rem}</p>
+            <table><thead><tr><th>«· «—ÌŒ</th><th>«·Ê’›</th><th>ﬂ„Ì…</th><th>”⁄—</th><th>≈Ã„«·Ì</th><th>„œ›Ê⁄</th><th>„ »ﬁÌ</th><th>Õ–›</th></tr></thead><tbody>${rows}</tbody></table>
+            <div class="summary">
+              <div><i class="fas fa-coins"></i> «·≈Ã„«·Ì: ${tot}</div>
+              <div><i class="fas fa-check-circle"></i> «·„œ›Ê⁄: ${paid}</div>
+              <div><i class="fas fa-hourglass-half"></i> «·„ »ﬁÌ: ${rem}</div>
+            </div>`;
+          cont.appendChild(div);
+        });
+      }
+    }
+
+    // Õ–› ⁄„Ì· (Firebase)
+    function deleteCustomer(key) {
+      if (!firebaseInitialized) {
+        showToast("Firebase €Ì— „ «Õ. «” Œœ„ deleteCustomerLocal.", "error");
+        return;
+      }
+      if (!confirm(`Â· √‰  „ √ﬂœ „‰ Õ–› «·⁄„Ì· ${data[key].name}ø`)) return;
+      const pass = prompt("√œŒ· ﬂ·„… «·„—Ê— ·Õ–› «·⁄„Ì·:");
+      if (pass === "1234") {
+        customersRef.child(key).remove()
+          .then(() => showToast(" „ Õ–› «·⁄„Ì· »‰Ã«Õ"))
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì «·Õ–›:", error);
+            showToast("›‘· «·Õ–› „‰ Firebase. Ã—» „Õ·Ì«.", "error");
+          });
+      } else {
+        showToast("ﬂ·„… «·„—Ê— Œ«ÿ∆…", "error");
+      }
+    }
+
+    // Õ–› ⁄„Ì· („Õ·Ì)
+    function deleteCustomerLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase „ «Õ. «” Œœ„ deleteCustomer.", "error");
+        return;
+      }
+      if (!confirm(`Â· √‰  „ √ﬂœ „‰ Õ–› «·⁄„Ì· ${data[index].name}ø`)) return;
+      const pass = prompt("√œŒ· ﬂ·„… «·„—Ê— ·Õ–› «·⁄„Ì·:");
+      if (pass === "1234") {
+        data.splice(index, 1);
+        saveData();
+        renderCustomers();
+        showToast(" „ Õ–› «·⁄„Ì· »‰Ã«Õ");
+      } else {
+        showToast("ﬂ·„… «·„—Ê— Œ«ÿ∆…", "error");
+      }
+    }
+
+    // Õ–› ›« Ê—… (Firebase)
+    function deleteInvoice(custKey, invIndex) {
+      if (!firebaseInitialized) {
+        showToast("Firebase €Ì— „ «Õ. «” Œœ„ deleteInvoiceLocal.", "error");
+        return;
+      }
+      if (!confirm(`Â· √‰  „ √ﬂœ „‰ Õ–› «·›« Ê—…ø`)) return;
+      const pass = prompt("√œŒ· ﬂ·„… «·„—Ê— ·Õ–› «·›« Ê—…:");
+      if (pass === "1234") {
+        const invoicesRef = customersRef.child(custKey).child('invoices');
+        const invoiceKeys = Object.keys(data[custKey].invoices || {});
+        invoicesRef.child(invoiceKeys[invIndex]).remove()
+          .then(() => showToast(" „ Õ–› «·›« Ê—… »‰Ã«Õ"))
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì «·Õ–›:", error);
+            showToast("›‘· «·Õ–› „‰ Firebase. Ã—» „Õ·Ì«.", "error");
+          });
+      } else {
+        showToast("ﬂ·„… «·„—Ê— Œ«ÿ∆…", "error");
+      }
+    }
+
+    // Õ–› ›« Ê—… („Õ·Ì)
+    function deleteInvoiceLocal(custIndex, invIndex) {
+      if (firebaseInitialized) {
+        showToast("Firebase „ «Õ. «” Œœ„ deleteInvoice.", "error");
+        return;
+      }
+      if (!confirm(`Â· √‰  „ √ﬂœ „‰ Õ–› «·›« Ê—…ø`)) return;
+      const pass = prompt("√œŒ· ﬂ·„… «·„—Ê— ·Õ–› «·›« Ê—…:");
+      if (pass === "1234") {
+        data[custIndex].invoices.splice(invIndex, 1);
+        saveData();
+        renderCustomers();
+        showToast(" „ Õ–› «·›« Ê—… »‰Ã«Õ");
+      } else {
+        showToast("ﬂ·„… «·„—Ê— Œ«ÿ∆…", "error");
+      }
+    }
+
+    //  Õ’Ì· œ›⁄… (Firebase)
+    function collectPayment(key) {
+      if (!firebaseInitialized) {
+        showToast("Firebase €Ì— „ «Õ. «” Œœ„ collectPaymentLocal.", "error");
+        return;
+      }
+      const customer = data[key];
+      const remaining = (customer.invoices || []).filter(inv => inv.description !== "œ›⁄…  Õ’Ì·").reduce((s, inv) => s + (inv.remaining || 0), 0);
+      const amount = Number(prompt(`«·„ »ﬁÌ: ${remaining}\n√œŒ· «·„»·€:`));
+      if (isNaN(amount) || amount <= 0) return showToast("«·—Ã«¡ ≈œŒ«· „»·€ ’ÕÌÕ Ê„ÊÃ»", "error");
+      if (!confirm(`Â·  —Ìœ  Õ’Ì· „»·€ ${amount}ø`)) return;
+      const paymentInvoice = {
+        description: "œ›⁄…  Õ’Ì·",
+        quantity: 1,
+        unitPrice: amount,
+        total: amount,
+        paid: amount,
+        remaining: 0,
+        date: new Date().toLocaleString("ar-EG")
+      };
+      customersRef.child(key).child('invoices').push(paymentInvoice);
+      let toPay = amount;
+      for (let inv of (customer.invoices || [])) {
+        if (inv.description !== "œ›⁄…  Õ’Ì·" && (inv.remaining || 0) > 0 && toPay > 0) {
+          const pay = Math.min(inv.remaining, toPay);
+          inv.paid = (inv.paid || 0) + pay;
+          inv.remaining = (inv.remaining || 0) - pay;
+          toPay -= pay;
+        }
+      }
+      customersRef.child(key).child('invoices').set(customer.invoices || [])
+        .then(() => showToast(" „  Õ’Ì· «·œ›⁄… »‰Ã«Õ"))
+        .catch((error) => {
+          console.error("Œÿ√ ›Ì «· Õ’Ì·:", error);
+          showToast("›‘· «· Õ’Ì· „‰ Firebase. Ã—» „Õ·Ì«.", "error");
+        });
+    }
+
+    //  Õ’Ì· œ›⁄… („Õ·Ì)
+    function collectPaymentLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase „ «Õ. «” Œœ„ collectPayment.", "error");
+        return;
+      }
+      const customer = data[index];
+      const remaining = customer.invoices.filter(inv => inv.description !== "œ›⁄…  Õ’Ì·").reduce((s, inv) => s + inv.remaining, 0);
+      const amount = Number(prompt(`«·„ »ﬁÌ: ${remaining}\n√œŒ· «·„»·€:`));
+      if (isNaN(amount) || amount <= 0) return showToast("«·—Ã«¡ ≈œŒ«· „»·€ ’ÕÌÕ Ê„ÊÃ»", "error");
+      if (!confirm(`Â·  —Ìœ  Õ’Ì· „»·€ ${amount}ø`)) return;
+      const paymentInvoice = {
+        description: "œ›⁄…  Õ’Ì·",
+        quantity: 1,
+        unitPrice: amount,
+        total: amount,
+        paid: amount,
+        remaining: 0,
+        date: new Date().toLocaleString("ar-EG")
+      };
+      customer.invoices.push(paymentInvoice);
+      let toPay = amount;
+      for (let inv of customer.invoices) {
+        if (inv.description !== "œ›⁄…  Õ’Ì·" && inv.remaining > 0 && toPay > 0) {
+          const pay = Math.min(inv.remaining, toPay);
+          inv.paid += pay;
+          inv.remaining -= pay;
+          toPay -= pay;
+        }
+      }
+      saveData();
+      renderCustomers();
+      showToast(" „  Õ’Ì· «·œ›⁄… »‰Ã«Õ");
+    }
+
+    //  ’œÌ— »Ì«‰«  «·⁄„Ì· ﬂ‹ PDF (Firebase)
+    function exportCustomerOnly(key) {
+      const cust = data[key];
+      const filtered = (cust.invoices || []).filter(inv => inv.description !== "œ›⁄…  Õ’Ì·");
+      const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
+      const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
+      const rem = tot - paid;
+      const rows = (cust.invoices || []).map(inv => `
+        <tr>
+          <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
+          <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
+        </tr>`).join('');
+      let html = `
+        <div style="font-family: 'Tajawal'; padding:20px; direction:rtl;">
+          <h2 style="text-align:center;">„ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„</h2>
+          <h3>»Ì«‰«  «·⁄„Ì·</h3>
+          <p><strong>«·«”„:</strong> ${cust.name}</p>
+          <p><strong>«·Â« ›:</strong> ${cust.phone}</p>
+          <h3>«·›Ê« Ì—</h3>
+          <table style="width:100%; border-collapse:collapse; border:1px solid #ccc;">
+            <thead><tr style="background:#0d3b66; color:white;">
+              <th>«· «—ÌŒ</th><th>«·Ê’›</th><th>ﬂ„Ì…</th><th>”⁄—</th><th>≈Ã„«·Ì</th><th>„œ›Ê⁄</th><th>„ »ﬁÌ</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:20px;">
+            <p><strong>«·≈Ã„«·Ì:</strong> ${tot}</p>
+            <p><strong>«·„œ›Ê⁄:</strong> ${paid}</p>
+            <p><strong>«·„ »ﬁÌ:</strong> ${rem}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById("invoicePrint").innerHTML = html;
+      setTimeout(() => {
+        if (typeof html2pdf !== 'undefined') {
+          html2pdf().from(document.getElementById("invoicePrint")).set({
+            margin: 0.5,
+            jsPDF: { format: 'a4' }
+          }).save(`›Ê« Ì—-${cust.name}.pdf`);
+        } else {
+          showToast("›‘· ›Ì  Õ„Ì· „ﬂ »… «· ÕÊÌ· ≈·Ï PDF.", "error");
+        }
+      }, 300);
+      showToast(" „  ’œÌ— PDF »‰Ã«Õ");
+    }
+
+    //  ’œÌ— »Ì«‰«  «·⁄„Ì· ﬂ‹ PDF („Õ·Ì)
+    function exportCustomerOnlyLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase „ «Õ. «” Œœ„ exportCustomerOnly.", "error");
+        return;
+      }
+      const cust = data[index];
+      const filtered = cust.invoices.filter(inv => inv.description !== "œ›⁄…  Õ’Ì·");
+      const tot = filtered.reduce((s, inv) => s + inv.total, 0);
+      const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
+      const rem = tot - paid;
+      const rows = cust.invoices.map(inv => `
+        <tr>
+          <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
+          <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
+        </tr>`).join('');
+      let html = `
+        <div style="font-family: 'Tajawal'; padding:20px; direction:rtl;">
+          <h2 style="text-align:center;">„ÿ»⁄… ÿ«—ﬁ √»ÊÂ„«„</h2>
+          <h3>»Ì«‰«  «·⁄„Ì·</h3>
+          <p><strong>«·«”„:</strong> ${cust.name}</p>
+          <p><strong>«·Â« ›:</strong> ${cust.phone}</p>
+          <h3>«·›Ê« Ì—</h3>
+          <table style="width:100%; border-collapse:collapse; border:1px solid #ccc;">
+            <thead><tr style="background:#0d3b66; color:white;">
+              <th>«· «—ÌŒ</th><th>«·Ê’›</th><th>ﬂ„Ì…</th><th>”⁄—</th><th>≈Ã„«·Ì</th><th>„œ›Ê⁄</th><th>„ »ﬁÌ</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:20px;">
+            <p><strong>«·≈Ã„«·Ì:</strong> ${tot}</p>
+            <p><strong>«·„œ›Ê⁄:</strong> ${paid}</p>
+            <p><strong>«·„ »ﬁÌ:</strong> ${rem}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById("invoicePrint").innerHTML = html;
+      setTimeout(() => {
+        if (typeof html2pdf !== 'undefined') {
+          html2pdf().from(document.getElementById("invoicePrint")).set({
+            margin: 0.5,
+            jsPDF: { format: 'a4' }
+          }).save(`›Ê« Ì—-${cust.name}.pdf`);
+        } else {
+          showToast("›‘· ›Ì  Õ„Ì· „ﬂ »… «· ÕÊÌ· ≈·Ï PDF.", "error");
+        }
+      }, 300);
+      showToast(" „  ’œÌ— PDF »‰Ã«Õ");
+    }
+
+    //  ⁄œÌ· —ﬁ„ Â« › «·⁄„Ì· (Firebase)
+    function editCustomer(key) {
+      if (!firebaseInitialized) {
+        showToast("Firebase €Ì— „ «Õ. «” Œœ„ editCustomerLocal.", "error");
+        return;
+      }
+      const newPhone = prompt("√œŒ· —ﬁ„ «·Â« › «·ÃœÌœ:", data[key].phone);
+      if (newPhone && newPhone.trim()) {
+        customersRef.child(key).update({ phone: newPhone.trim() })
+          .then(() => showToast(" „  ⁄œÌ· —ﬁ„ «·Â« › »‰Ã«Õ"))
+          .catch((error) => {
+            console.error("Œÿ√ ›Ì «· ⁄œÌ·:", error);
+            showToast("›‘· «· ⁄œÌ· „‰ Firebase. Ã—» „Õ·Ì«.", "error");
+          });
+      } else {
+        showToast("«·—Ã«¡ ≈œŒ«· —ﬁ„ Â« › ’ÕÌÕ", "error");
+      }
+    }
+
+    //  ⁄œÌ· —ﬁ„ Â« › «·⁄„Ì· („Õ·Ì)
+    function editCustomerLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase „ «Õ. «” Œœ„ editCustomer.", "error");
+        return;
+      }
+      const newPhone = prompt("√œŒ· —ﬁ„ «·Â« › «·ÃœÌœ:", data[index].phone);
+      if (newPhone && newPhone.trim()) {
+        data[index].phone = newPhone.trim();
+        saveData();
+        renderCustomers();
+        showToast(" „  ⁄œÌ· —ﬁ„ «·Â« › »‰Ã«Õ");
+      } else {
+        showToast("«·—Ã«¡ ≈œŒ«· —ﬁ„ Â« › ’ÕÌÕ", "error");
+      }
+    }
+
+    //  ’œÌ— «·»Ì«‰«  ﬂ‹ JSON
+    function exportData() {
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `customers_data_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast(" „  ’œÌ— «·»Ì«‰«  »‰Ã«Õ");
+    }
+
+    // «” Ì—«œ «·»Ì«‰«  „‰ JSON
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          data = JSON.parse(e.target.result);
+          if (firebaseInitialized) {
+            customersRef.set(data)
+              .then(() => {
+                showToast(" „ «” Ì—«œ «·»Ì«‰«  »‰Ã«Õ");
+                renderCustomers();
+              })
+              .catch((error) => {
+                console.error("Œÿ√ ›Ì «·«” Ì—«œ:", error);
+                localStorage.setItem("customersData", JSON.stringify(data));
+                renderCustomers();
+                showToast(" „ «” Ì—«œ «·»Ì«‰«  „Õ·Ì« »”»» „‘ﬂ·… ›Ì Firebase.", "error");
+              });
+          } else {
+            saveData();
+            renderCustomers();
+            showToast(" „ «” Ì—«œ «·»Ì«‰«  »‰Ã«Õ");
+          }
+        } catch (err) {
+          showToast("Œÿ√ ›Ì „·› «·»Ì«‰« : " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ⁄—÷ «·≈Õ’«∆Ì«  «·⁄«„…
+    function renderGeneralStats() {
+      const total = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "œ›⁄…  Õ’Ì·").reduce((s, inv) => s + (inv.total || 0), 0), 0);
+      const paid = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "œ›⁄…  Õ’Ì·").reduce((s, inv) => s + (inv.paid || 0), 0), 0);
+      const remaining = total - paid;
+      document.getElementById("generalStats").innerHTML = `
+        <div><i class="fas fa-coins"></i> «·≈Ã„«·Ì: ${total || 0}</div>
+        <div><i class="fas fa-check-circle"></i> «·„œ›Ê⁄: ${paid || 0}</div>
+        <div><i class="fas fa-hourglass-half"></i> «·„ »ﬁÌ: ${remaining || 0}</div>
+      `;
+    }
+
+    //  Õ„Ì· «·⁄„·«¡ ⁄‰œ »œ¡ «· ‘€Ì·
+    window.onload = function() {
+      renderCustomers();
+    };
+  </script>
