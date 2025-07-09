@@ -2,42 +2,1022 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>نظام فواتير طارق - ربط Firebase</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <title>نظام العملاء والفواتير - مطبعة طارق أبوهمام</title>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js"></script>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      direction: rtl;
+      background: #eef3f7;
+      padding: 20px;
+      margin: 0;
+      font-size: 17px;
+    }
+    h1, h2, h3 {
+      color: #0d3b66;
+      margin: 0 0 10px;
+    }
+    .section {
+      background: #ffffff;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      width: 100%;
+    }
+    input, button, select, table {
+      font-family: 'Tajawal', sans-serif;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px 5px 5px 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    .add-btn { background: #0077b6; }
+    .add-btn:hover { background: #005f87; }
+    .collect-btn { background: #2a9d8f; }
+    .collect-btn:hover { background: #1e7d6b; }
+    .print-btn { background: #f4a261; }
+    .print-btn:hover { background: #e07b33; }
+    .delete-btn { background: crimson; }
+    .delete-btn:hover { background: #a30000; }
+    .edit-btn { background: orange; }
+    .edit-btn:hover { background: #cc8400; }
+    .export-btn { background: #6b7280; }
+    .export-btn:hover { background: #4b5563; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: right;
+    }
+    th {
+      background: #0d3b66;
+      color: white;
+    }
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      margin-top: 10px;
+      gap: 10px;
+    }
+    .summary div {
+      background: #ffffff;
+      padding: 10px;
+      border-radius: 6px;
+      flex: 1 1 120px;
+      text-align: center;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 95%;
+      max-width: 400px;
+    }
+    .hidden-print { display: none; }
+    .login-screen {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(135deg, #0d3b66, #0077b6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    .login-box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-logo {
+      width: 300px;
+      height: auto;
+      margin-bottom: 30px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .login-box h2 {
+      color: #0d3b66;
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: right;
+    }
+    .input-group label {
+      display: block;
+      color: #0d3b66;
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .input-group i {
+      margin-left: 8px;
+      color: #0077b6;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #0077b6;
+      box-shadow: 0 0 5px rgba(0, 119, 182, 0.3);
+    }
+    .login-btn {
+      background: #0077b6;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .login-btn:hover {
+      background: #005f87;
+      transform: translateY(-2px);
+    }
+    .login-btn i {
+      margin-left: 8px;
+    }
+    .login-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(to right, #f4a261, #0077b6);
+      border-radius: 15px 15px 0 0;
+    }
+    @media (max-width: 600px) {
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      th, td {
+        white-space: nowrap;
+      }
+      .summary {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .login-box {
+        padding: 20px;
+        width: 95%;
+      }
+      .login-logo {
+        width: 100px;
+      }
+      .login-box h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>🔥 نظام فواتير طارق مربوط بـ Firebase 🔥</h1>
-  <p id="status">⏳ جاري الاتصال بـ Firebase...</p>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <img src="https://i.servimg.com/u/f28/15/53/23/87/ae_a_010.jpg" alt="لوجو مطبعة طارق أبوهمام" class="login-logo" />
+      <h2>مرحبًا بك في نظام مطبعة طارق أبوهمام</h2>
+      <div class="input-group">
+        <label><i class="fas fa-user"></i> اسم المستخدم:</label>
+        <input id="username" type="text" placeholder="أدخل اسم المستخدم" />
+      </div>
+      <div class="input-group">
+        <label><i class="fas fa-lock"></i> كلمة المرور:</label>
+        <input id="password" type="password" placeholder="أدخل كلمة المرور" />
+      </div>
+      <button onclick="login()" class="login-btn"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</button>
+    </div>
+  </div>
+
+  <h1>مطبعة طارق أبوهمام - نظام العملاء والفواتير</h1>
+  <div class="section">
+    <h2>إحصائيات عامة</h2>
+    <div class="summary" id="generalStats"></div>
+  </div>
+  <div class="section">
+    <h2>إدارة البيانات</h2>
+    <button onclick="exportData()" class="export-btn"><i class="fas fa-download"></i> تصدير البيانات</button>
+    <input type="file" id="importData" accept=".json" onchange="importData(event)" style="display: inline-block; width: auto;" />
+  </div>
+  <div class="section">
+    <h2>بحث عن عميل</h2>
+    <input oninput="renderCustomers()" placeholder="اكتب اسم العميل..." id="searchBox" type="text" />
+  </div>
+  <div class="section">
+    <h2>إضافة عميل جديد</h2>
+    <label>اسم العميل:</label>
+    <input id="customerName" type="text" />
+    <label>رقم الهاتف:</label>
+    <input id="customerPhone" type="text" />
+    <button onclick="addCustomer()" class="add-btn"><i class="fas fa-plus"></i> إضافة</button>
+  </div>
+  <div class="section">
+    <h2>العملاء</h2>
+    <div id="customersContainer"></div>
+  </div>
+
+  <div class="modal" id="invoiceModal">
+    <div class="modal-content">
+      <h3>إضافة فاتورة بنر</h3>
+      <label>نوع الطباعة:</label>
+      <select id="bannerType">
+        <option value="بنر">بنر</option>
+        <option value="فليكس">فليكس</option>
+        <option value="فينيل">فينيل</option>
+      </select>
+      <label>العرض (متر):</label>
+      <input type="number" id="bannerWidth" min="0" step="0.01" />
+      <label>الارتفاع (متر):</label>
+      <input type="number" id="bannerHeight" min="0" step="0.01" />
+      <label>سعر المتر:</label>
+      <input type="number" id="bannerPrice" min="0" step="0.01" />
+      <button onclick="saveBannerInvoice()" class="add-btn"><i class="fas fa-save"></i> حفظ الفاتورة</button>
+      <button onclick="closeModal()" class="delete-btn"><i class="fas fa-times"></i> إلغاء</button>
+    </div>
+  </div>
+
+  <div class="modal" id="genericInvoiceModal">
+    <div class="modal-content">
+      <h3>إضافة فاتورة عامة</h3>
+      <label>الوصف:</label>
+      <input type="text" id="descInput" />
+      <label>الكمية:</label>
+      <input type="number" id="qtyInput" min="1" />
+      <label>سعر الوحدة:</label>
+      <input type="number" id="unitPriceInput" min="0" step="0.01" />
+      <button onclick="saveGenericInvoice()" class="add-btn"><i class="fas fa-save"></i> حفظ الفاتورة</button>
+      <button onclick="closeGenericModal()" class="delete-btn"><i class="fas fa-times"></i> إلغاء</button>
+    </div>
+  </div>
+  <div class="hidden-print" id="invoicePrint"></div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBUhkNuW4HmYe7YtErEYALrsnc7dOhXxRk",
-      authDomain: "tarek0.firebaseapp.com",
-      databaseURL: "https://tarek0-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "tarek0",
-      storageBucket: "tarek0.firebasestorage.app",
-      messagingSenderId: "401049849658",
-      appId: "1:401049849658:web:16ba28dd7fee3b8f20ca03",
-      measurementId: "G-38CV51MHB6"
+    let firebaseInitialized = false;
+    let customersRef = null;
+    let currentUser = null;
+
+    // تهيئة Firebase
+    if (typeof firebase !== 'undefined') {
+      try {
+        const firebaseConfig = {
+          apiKey: "AIzaSyBUhkNuW4HmYe7YtErEYALrsnc7dOhXxRk",
+          authDomain: "tarek0.firebaseapp.com",
+          databaseURL: "https://tarek0-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "tarek0",
+          storageBucket: "tarek0.firebasestorage.app",
+          messagingSenderId: "401049849658",
+          appId: "1:401049849658:web:16ba28dd7fee3b8f20ca03",
+          measurementId: "G-38CV51MHB6"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        customersRef = database.ref('customers');
+        firebaseInitialized = true;
+        showToast("🔥 نظام فواتير طارق مربوط بـ Firebase 🔥", "success");
+      } catch (e) {
+        console.error("خطأ في تهيئة Firebase:", e);
+        showToast("❌ فشل التهيئة: " + e.message, "error");
+      }
+    } else {
+      console.error("Firebase غير متاح");
+      showToast("❌ فشل التهيئة: مكتبة Firebase لم تتحمل", "error");
+    }
+
+    let data = firebaseInitialized ? [] : JSON.parse(localStorage.getItem("customersData") || "[]");
+    let currentCustomerIndex = null;
+    let operationCount = 0;
+
+    // تحميل البيانات
+    if (firebaseInitialized) {
+      customersRef.on('value', (snapshot) => {
+        data = snapshot.val() || [];
+        renderCustomers();
+        renderGeneralStats();
+      }, (error) => {
+        console.error("خطأ في تحميل البيانات:", error);
+        showToast("فشل في تحميل البيانات من Firebase. يتم استخدام localStorage.", "error");
+        data = JSON.parse(localStorage.getItem("customersData") || "[]");
+        renderCustomers();
+        renderGeneralStats();
+      });
+    } else {
+      renderCustomers();
+      renderGeneralStats();
+    }
+
+    // حفظ البيانات
+    function saveData() {
+      if (firebaseInitialized) {
+        customersRef.set(data)
+          .then(() => {
+            console.log("تم حفظ البيانات في Firebase");
+            showToast("تم حفظ البيانات بنجاح", "success");
+          })
+          .catch((error) => {
+            console.error("خطأ في حفظ البيانات:", error);
+            localStorage.setItem("customersData", JSON.stringify(data));
+            showToast("فشل الحفظ في Firebase. تم الحفظ محليًا.", "error");
+          });
+      } else {
+        localStorage.setItem("customersData", JSON.stringify(data));
+        showToast("Firebase غير متاح. تم الحفظ محليًا.", "error");
+      }
+      operationCount++;
+      if (operationCount % 10 === 0) {
+        if (confirm("لقد قمت بـ 10 عمليات! هل تريد تصدير البيانات لحفظها؟")) {
+          exportData();
+        }
+      }
+    }
+
+    // إظهار إشعار
+    function showToast(message, type = 'success') {
+      if (typeof Toastify !== 'undefined') {
+        Toastify({
+          text: message,
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: { background: type === 'success' ? '#2a9d8f' : '#dc2626' }
+        }).showToast();
+      } else {
+        console.log("Toastify غير متاح:", message);
+      }
+    }
+
+    // تنبيه قبل إغلاق الصفحة
+    window.onbeforeunload = function() {
+      if (data.length > 0) {
+        return "هناك بيانات لم يتم حفظها خارجيًا. هل تريد تصديرها قبل الخروج؟";
+      }
     };
 
-    try {
-      const app = firebase.initializeApp(firebaseConfig);
-      const db = firebase.database(app);
-
-      const demoRef = db.ref("demo");
-
-      demoRef.set({ message: "تم الربط بنجاح" })
-        .then(() => {
-          document.getElementById("status").innerText = "✅ تم حفظ البيانات في Firebase.";
+    // تسجيل الدخول باستخدام Firebase Authentication
+    function login() {
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value;
+      if (!user || !pass) {
+        showToast("الرجاء إدخال اسم المستخدم وكلمة المرور", "error");
+        return;
+      }
+      firebase.auth().signInWithEmailAndPassword(user + "@example.com", pass)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          document.getElementById("loginScreen").style.display = "none";
+          showToast("تم تسجيل الدخول بنجاح", "success");
         })
-        .catch((err) => {
-          document.getElementById("status").innerText = "❌ خطأ أثناء الحفظ: " + err.message;
+        .catch((error) => {
+          showToast("بيانات الدخول غير صحيحة: " + error.message, "error");
         });
-    } catch (e) {
-      document.getElementById("status").innerText = "❌ فشل التهيئة: " + e.message;
     }
+
+    // إضافة عميل جديد
+    function addCustomer() {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      const name = document.getElementById("customerName").value.trim();
+      const phone = document.getElementById("customerPhone").value.trim();
+      if (!name || !phone) return showToast("املأ جميع الحقول", "error");
+      const newCustomer = { name, phone, invoices: [] };
+      if (firebaseInitialized) {
+        customersRef.push(newCustomer)
+          .then(() => {
+            document.getElementById("customerName").value = "";
+            document.getElementById("customerPhone").value = "";
+            showToast("تم إضافة العميل بنجاح");
+          })
+          .catch((error) => {
+            console.error("خطأ في إضافة العميل:", error);
+            data.push(newCustomer);
+            saveData();
+            renderCustomers();
+            showToast("تم إضافة العميل محليًا بسبب مشكلة في Firebase.", "error");
+          });
+      } else {
+        data.push(newCustomer);
+        saveData();
+        renderCustomers();
+        showToast("تم إضافة العميل بنجاح");
+      }
+    }
+
+    // إضافة فاتورة
+    function addInvoice(index) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      currentCustomerIndex = index;
+      const isBanner = confirm("هل نوع الفاتورة بنر / فليكس / فينيل؟");
+      if (isBanner) {
+        document.getElementById("invoiceModal").style.display = "flex";
+      } else {
+        document.getElementById("genericInvoiceModal").style.display = "flex";
+      }
+    }
+
+    // حفظ فاتورة بنر
+    function saveBannerInvoice() {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      const type = document.getElementById("bannerType").value;
+      const w = Number(document.getElementById("bannerWidth").value);
+      const h = Number(document.getElementById("bannerHeight").value);
+      const unitPrice = Number(document.getElementById("bannerPrice").value);
+      if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+        return showToast("الرجاء إدخال قيم صحيحة وموجبة", "error");
+      }
+      if (!confirm("هل تريد حفظ فاتورة البنر؟")) return;
+      const description = `${type} ${w}×${h}`;
+      const quantity = w * h;
+      const total = quantity * unitPrice;
+      const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+          .then(() => {
+            closeModal();
+            showToast("تم إضافة فاتورة البنر بنجاح");
+          })
+          .catch((error) => {
+            console.error("خطأ في حفظ الفاتورة:", error);
+            data[currentCustomerIndex].invoices.push(invoice);
+            saveData();
+            renderCustomers();
+            showToast("تم حفظ الفاتورة محليًا بسبب مشكلة في Firebase.", "error");
+          });
+      } else {
+        data[currentCustomerIndex].invoices.push(invoice);
+        saveData();
+        closeModal();
+        renderCustomers();
+        showToast("تم إضافة فاتورة البنر بنجاح");
+      }
+    }
+
+    // إغلاق نافذة فاتورة البنر
+    function closeModal() {
+      document.getElementById("invoiceModal").style.display = "none";
+      document.getElementById("bannerType").value = "بنر";
+      document.getElementById("bannerWidth").value = "";
+      document.getElementById("bannerHeight").value = "";
+      document.getElementById("bannerPrice").value = "";
+    }
+
+    // حفظ فاتورة عامة
+    function saveGenericInvoice() {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      const description = document.getElementById("descInput").value.trim();
+      const quantity = Number(document.getElementById("qtyInput").value);
+      const unitPrice = Number(document.getElementById("unitPriceInput").value);
+      if (!description || isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+        showToast("الرجاء إدخال قيم صحيحة وموجبة", "error");
+        return;
+      }
+      if (!confirm("هل تريد حفظ الفاتورة العامة؟")) return;
+      const total = quantity * unitPrice;
+      const invoice = { description, quantity, unitPrice, total, paid: 0, remaining: total, date: new Date().toLocaleString("ar-EG") };
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customersRef.child(customerKeys[currentCustomerIndex]).child('invoices').push(invoice)
+          .then(() => {
+            closeGenericModal();
+            showToast("تم إضافة الفاتورة العامة بنجاح");
+          })
+          .catch((error) => {
+            console.error("خطأ في حفظ الفاتورة:", error);
+            data[currentCustomerIndex].invoices.push(invoice);
+            saveData();
+            renderCustomers();
+            showToast("تم حفظ الفاتورة محليًا بسبب مشكلة في Firebase.", "error");
+          });
+      } else {
+        data[currentCustomerIndex].invoices.push(invoice);
+        saveData();
+        closeGenericModal();
+        renderCustomers();
+        showToast("تم إضافة الفاتورة العامة بنجاح");
+      }
+    }
+
+    // إغلاق نافذة الفاتورة العامة
+    function closeGenericModal() {
+      document.getElementById("genericInvoiceModal").style.display = "none";
+      document.getElementById("descInput").value = "";
+      document.getElementById("qtyInput").value = "";
+      document.getElementById("unitPriceInput").value = "";
+    }
+
+    // عرض العملاء والإحصائيات
+    function renderCustomers() {
+      const sc = document.getElementById("searchBox").value.toLowerCase();
+      const cont = document.getElementById("customersContainer");
+      cont.innerHTML = "";
+      if (firebaseInitialized) {
+        const customerKeys = Object.keys(data);
+        customerKeys.forEach((key, i) => {
+          const cust = data[key];
+          if (!cust.name.toLowerCase().includes(sc)) return;
+          const filtered = cust.invoices ? cust.invoices.filter(inv => inv.description !== "دفعة تحصيل") : [];
+          const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
+          const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
+          const rem = tot - paid;
+          const div = document.createElement("div");
+          div.className = "section";
+          const rows = (cust.invoices || []).map((inv, j) => `
+            <tr>
+              <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
+              <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
+              <td><button class="delete-btn" onclick="deleteInvoice('${key}', ${j})"><i class="fas fa-trash"></i> حذف</button></td>
+            </tr>`).join('');
+          div.innerHTML = `
+            <h3>${cust.name} - ${cust.phone}
+              <button class="edit-btn" onclick="editCustomer('${key}')"><i class="fas fa-edit"></i></button>
+              <button class="delete-btn" onclick="deleteCustomer('${key}')"><i class="fas fa-trash"></i></button>
+            </h3>
+            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> إضافة فاتورة</button>
+            <button class="collect-btn" onclick="collectPayment('${key}')"><i class="fas fa-money-bill"></i> تحصيل</button>
+            <button class="print-btn" onclick="exportCustomerOnly('${key}')"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+            <p><strong>إجمالي:</strong> ${tot} | <strong>مدفوع:</strong> ${paid} | <strong>متبقي:</strong> ${rem}</p>
+            <table><thead><tr><th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th><th>حذف</th></tr></thead><tbody>${rows}</tbody></table>
+            <div class="summary">
+              <div><i class="fas fa-coins"></i> الإجمالي: ${tot}</div>
+              <div><i class="fas fa-check-circle"></i> المدفوع: ${paid}</div>
+              <div><i class="fas fa-hourglass-half"></i> المتبقي: ${rem}</div>
+            </div>`;
+          cont.appendChild(div);
+        });
+      } else {
+        data.forEach((cust, i) => {
+          if (!cust.name.toLowerCase().includes(sc)) return;
+          const filtered = cust.invoices.filter(inv => inv.description !== "دفعة تحصيل");
+          const tot = filtered.reduce((s, inv) => s + inv.total, 0);
+          const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
+          const rem = tot - paid;
+          const div = document.createElement("div");
+          div.className = "section";
+          const rows = cust.invoices.map((inv, j) => `
+            <tr>
+              <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
+              <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
+              <td><button class="delete-btn" onclick="deleteInvoiceLocal(${i}, ${j})"><i class="fas fa-trash"></i> حذف</button></td>
+            </tr>`).join('');
+          div.innerHTML = `
+            <h3>${cust.name} - ${cust.phone}
+              <button class="edit-btn" onclick="editCustomerLocal(${i})"><i class="fas fa-edit"></i></button>
+              <button class="delete-btn" onclick="deleteCustomerLocal(${i})"><i class="fas fa-trash"></i></button>
+            </h3>
+            <button class="add-btn" onclick="addInvoice(${i})"><i class="fas fa-plus"></i> إضافة فاتورة</button>
+            <button class="collect-btn" onclick="collectPaymentLocal(${i})"><i class="fas fa-money-bill"></i> تحصيل</button>
+            <button class="print-btn" onclick="exportCustomerOnlyLocal(${i})"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+            <p><strong>إجمالي:</strong> ${tot} | <strong>مدفوع:</strong> ${paid} | <strong>متبقي:</strong> ${rem}</p>
+            <table><thead><tr><th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th><th>حذف</th></tr></thead><tbody>${rows}</tbody></table>
+            <div class="summary">
+              <div><i class="fas fa-coins"></i> الإجمالي: ${tot}</div>
+              <div><i class="fas fa-check-circle"></i> المدفوع: ${paid}</div>
+              <div><i class="fas fa-hourglass-half"></i> المتبقي: ${rem}</div>
+            </div>`;
+          cont.appendChild(div);
+        });
+      }
+    }
+
+    // حذف عميل (Firebase)
+    function deleteCustomer(key) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      if (!firebaseInitialized) {
+        showToast("Firebase غير متاح. استخدم deleteCustomerLocal.", "error");
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف العميل ${data[key].name}؟`)) return;
+      const pass = prompt("أدخل كلمة المرور لحذف العميل:");
+      if (pass === "1234") {
+        customersRef.child(key).remove()
+          .then(() => showToast("تم حذف العميل بنجاح"))
+          .catch((error) => {
+            console.error("خطأ في الحذف:", error);
+            showToast("فشل الحذف من Firebase. جرب محليًا.", "error");
+          });
+      } else {
+        showToast("كلمة المرور خاطئة", "error");
+      }
+    }
+
+    // حذف عميل (محلي)
+    function deleteCustomerLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase متاح. استخدم deleteCustomer.", "error");
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف العميل ${data[index].name}؟`)) return;
+      const pass = prompt("أدخل كلمة المرور لحذف العميل:");
+      if (pass === "1234") {
+        data.splice(index, 1);
+        saveData();
+        renderCustomers();
+        showToast("تم حذف العميل بنجاح");
+      } else {
+        showToast("كلمة المرور خاطئة", "error");
+      }
+    }
+
+    // حذف فاتورة (Firebase)
+    function deleteInvoice(custKey, invIndex) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      if (!firebaseInitialized) {
+        showToast("Firebase غير متاح. استخدم deleteInvoiceLocal.", "error");
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف الفاتورة؟`)) return;
+      const pass = prompt("أدخل كلمة المرور لحذف الفاتورة:");
+      if (pass === "1234") {
+        const invoicesRef = customersRef.child(custKey).child('invoices');
+        const invoiceKeys = Object.keys(data[custKey].invoices || {});
+        invoicesRef.child(invoiceKeys[invIndex]).remove()
+          .then(() => showToast("تم حذف الفاتورة بنجاح"))
+          .catch((error) => {
+            console.error("خطأ في الحذف:", error);
+            showToast("فشل الحذف من Firebase. جرب محليًا.", "error");
+          });
+      } else {
+        showToast("كلمة المرور خاطئة", "error");
+      }
+    }
+
+    // حذف فاتورة (محلي)
+    function deleteInvoiceLocal(custIndex, invIndex) {
+      if (firebaseInitialized) {
+        showToast("Firebase متاح. استخدم deleteInvoice.", "error");
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف الفاتورة؟`)) return;
+      const pass = prompt("أدخل كلمة المرور لحذف الفاتورة:");
+      if (pass === "1234") {
+        data[custIndex].invoices.splice(invIndex, 1);
+        saveData();
+        renderCustomers();
+        showToast("تم حذف الفاتورة بنجاح");
+      } else {
+        showToast("كلمة المرور خاطئة", "error");
+      }
+    }
+
+    // تحصيل دفعة (Firebase)
+    function collectPayment(key) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      if (!firebaseInitialized) {
+        showToast("Firebase غير متاح. استخدم collectPaymentLocal.", "error");
+        return;
+      }
+      const customer = data[key];
+      const remaining = (customer.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.remaining || 0), 0);
+      const amount = Number(prompt(`المتبقي: ${remaining}\nأدخل المبلغ:`));
+      if (isNaN(amount) || amount <= 0) return showToast("الرجاء إدخال مبلغ صحيح وموجب", "error");
+      if (!confirm(`هل تريد تحصيل مبلغ ${amount}؟`)) return;
+      const paymentInvoice = {
+        description: "دفعة تحصيل",
+        quantity: 1,
+        unitPrice: amount,
+        total: amount,
+        paid: amount,
+        remaining: 0,
+        date: new Date().toLocaleString("ar-EG")
+      };
+      customersRef.child(key).child('invoices').push(paymentInvoice);
+      let toPay = amount;
+      for (let inv of (customer.invoices || [])) {
+        if (inv.description !== "دفعة تحصيل" && (inv.remaining || 0) > 0 && toPay > 0) {
+          const pay = Math.min(inv.remaining, toPay);
+          inv.paid = (inv.paid || 0) + pay;
+          inv.remaining = (inv.remaining || 0) - pay;
+          toPay -= pay;
+        }
+      }
+      customersRef.child(key).child('invoices').set(customer.invoices || [])
+        .then(() => showToast("تم تحصيل الدفعة بنجاح"))
+        .catch((error) => {
+          console.error("خطأ في التحصيل:", error);
+          showToast("فشل التحصيل من Firebase. جرب محليًا.", "error");
+        });
+    }
+
+    // تحصيل دفعة (محلي)
+    function collectPaymentLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase متاح. استخدم collectPayment.", "error");
+        return;
+      }
+      const customer = data[index];
+      const remaining = customer.invoices.filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + inv.remaining, 0);
+      const amount = Number(prompt(`المتبقي: ${remaining}\nأدخل المبلغ:`));
+      if (isNaN(amount) || amount <= 0) return showToast("الرجاء إدخال مبلغ صحيح وموجب", "error");
+      if (!confirm(`هل تريد تحصيل مبلغ ${amount}؟`)) return;
+      const paymentInvoice = {
+        description: "دفعة تحصيل",
+        quantity: 1,
+        unitPrice: amount,
+        total: amount,
+        paid: amount,
+        remaining: 0,
+        date: new Date().toLocaleString("ar-EG")
+      };
+      customer.invoices.push(paymentInvoice);
+      let toPay = amount;
+      for (let inv of customer.invoices) {
+        if (inv.description !== "دفعة تحصيل" && inv.remaining > 0 && toPay > 0) {
+          const pay = Math.min(inv.remaining, toPay);
+          inv.paid += pay;
+          inv.remaining -= pay;
+          toPay -= pay;
+        }
+      }
+      saveData();
+      renderCustomers();
+      showToast("تم تحصيل الدفعة بنجاح");
+    }
+
+    // تصدير بيانات العميل كـ PDF (Firebase)
+    function exportCustomerOnly(key) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      const cust = data[key];
+      const filtered = (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل");
+      const tot = filtered.reduce((s, inv) => s + (inv.total || 0), 0);
+      const paid = filtered.reduce((s, inv) => s + (inv.paid || 0), 0);
+      const rem = tot - paid;
+      const rows = (cust.invoices || []).map(inv => `
+        <tr>
+          <td>${inv.date || ''}</td><td>${inv.description || ''}</td><td>${inv.quantity || 0}</td>
+          <td>${inv.unitPrice || 0}</td><td>${inv.total || 0}</td><td>${inv.paid || 0}</td><td>${inv.remaining || 0}</td>
+        </tr>`).join('');
+      let html = `
+        <div style="font-family: 'Tajawal'; padding:20px; direction:rtl;">
+          <h2 style="text-align:center;">مطبعة طارق أبوهمام</h2>
+          <h3>بيانات العميل</h3>
+          <p><strong>الاسم:</strong> ${cust.name}</p>
+          <p><strong>الهاتف:</strong> ${cust.phone}</p>
+          <h3>الفواتير</h3>
+          <table style="width:100%; border-collapse:collapse; border:1px solid #ccc;">
+            <thead><tr style="background:#0d3b66; color:white;">
+              <th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:20px;">
+            <p><strong>الإجمالي:</strong> ${tot}</p>
+            <p><strong>المدفوع:</strong> ${paid}</p>
+            <p><strong>المتبقي:</strong> ${rem}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById("invoicePrint").innerHTML = html;
+      setTimeout(() => {
+        if (typeof html2pdf !== 'undefined') {
+          html2pdf().from(document.getElementById("invoicePrint")).set({
+            margin: 0.5,
+            jsPDF: { format: 'a4' }
+          }).save(`فواتير-${cust.name}.pdf`);
+        } else {
+          showToast("فشل في تحميل مكتبة التحويل إلى PDF.", "error");
+        }
+      }, 300);
+      showToast("تم تصدير PDF بنجاح");
+    }
+
+    // تصدير بيانات العميل كـ PDF (محلي)
+    function exportCustomerOnlyLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase متاح. استخدم exportCustomerOnly.", "error");
+        return;
+      }
+      const cust = data[index];
+      const filtered = cust.invoices.filter(inv => inv.description !== "دفعة تحصيل");
+      const tot = filtered.reduce((s, inv) => s + inv.total, 0);
+      const paid = filtered.reduce((s, inv) => s + inv.paid, 0);
+      const rem = tot - paid;
+      const rows = cust.invoices.map(inv => `
+        <tr>
+          <td>${inv.date}</td><td>${inv.description}</td><td>${inv.quantity}</td>
+          <td>${inv.unitPrice}</td><td>${inv.total}</td><td>${inv.paid}</td><td>${inv.remaining}</td>
+        </tr>`).join('');
+      let html = `
+        <div style="font-family: 'Tajawal'; padding:20px; direction:rtl;">
+          <h2 style="text-align:center;">مطبعة طارق أبوهمام</h2>
+          <h3>بيانات العميل</h3>
+          <p><strong>الاسم:</strong> ${cust.name}</p>
+          <p><strong>الهاتف:</strong> ${cust.phone}</p>
+          <h3>الفواتير</h3>
+          <table style="width:100%; border-collapse:collapse; border:1px solid #ccc;">
+            <thead><tr style="background:#0d3b66; color:white;">
+              <th>التاريخ</th><th>الوصف</th><th>كمية</th><th>سعر</th><th>إجمالي</th><th>مدفوع</th><th>متبقي</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:20px;">
+            <p><strong>الإجمالي:</strong> ${tot}</p>
+            <p><strong>المدفوع:</strong> ${paid}</p>
+            <p><strong>المتبقي:</strong> ${rem}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById("invoicePrint").innerHTML = html;
+      setTimeout(() => {
+        if (typeof html2pdf !== 'undefined') {
+          html2pdf().from(document.getElementById("invoicePrint")).set({
+            margin: 0.5,
+            jsPDF: { format: 'a4' }
+          }).save(`فواتير-${cust.name}.pdf`);
+        } else {
+          showToast("فشل في تحميل مكتبة التحويل إلى PDF.", "error");
+        }
+      }, 300);
+      showToast("تم تصدير PDF بنجاح");
+    }
+
+    // تعديل رقم هاتف العميل (Firebase)
+    function editCustomer(key) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      if (!firebaseInitialized) {
+        showToast("Firebase غير متاح. استخدم editCustomerLocal.", "error");
+        return;
+      }
+      const newPhone = prompt("أدخل رقم الهاتف الجديد:", data[key].phone);
+      if (newPhone && newPhone.trim()) {
+        customersRef.child(key).update({ phone: newPhone.trim() })
+          .then(() => showToast("تم تعديل رقم الهاتف بنجاح"))
+          .catch((error) => {
+            console.error("خطأ في التعديل:", error);
+            showToast("فشل التعديل من Firebase. جرب محليًا.", "error");
+          });
+      } else {
+        showToast("الرجاء إدخال رقم هاتف صحيح", "error");
+      }
+    }
+
+    // تعديل رقم هاتف العميل (محلي)
+    function editCustomerLocal(index) {
+      if (firebaseInitialized) {
+        showToast("Firebase متاح. استخدم editCustomer.", "error");
+        return;
+      }
+      const newPhone = prompt("أدخل رقم الهاتف الجديد:", data[index].phone);
+      if (newPhone && newPhone.trim()) {
+        data[index].phone = newPhone.trim();
+        saveData();
+        renderCustomers();
+        showToast("تم تعديل رقم الهاتف بنجاح");
+      } else {
+        showToast("الرجاء إدخال رقم هاتف صحيح", "error");
+      }
+    }
+
+    // تصدير البيانات كـ JSON
+    function exportData() {
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `customers_data_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("تم تصدير البيانات بنجاح");
+    }
+
+    // استيراد البيانات من JSON
+    function importData(event) {
+      if (!currentUser && firebaseInitialized) {
+        showToast("الرجاء تسجيل الدخول أولاً", "error");
+        return;
+      }
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          data = JSON.parse(e.target.result);
+          if (firebaseInitialized) {
+            customersRef.set(data)
+              .then(() => {
+                showToast("تم استيراد البيانات بنجاح");
+                renderCustomers();
+              })
+              .catch((error) => {
+                console.error("خطأ في الاستيراد:", error);
+                localStorage.setItem("customersData", JSON.stringify(data));
+                renderCustomers();
+                showToast("تم استيراد البيانات محليًا بسبب مشكلة في Firebase.", "error");
+              });
+          } else {
+            saveData();
+            renderCustomers();
+            showToast("تم استيراد البيانات بنجاح");
+          }
+        } catch (err) {
+          showToast("خطأ في ملف البيانات: " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // عرض الإحصائيات العامة
+    function renderGeneralStats() {
+      const total = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.total || 0), 0), 0);
+      const paid = Object.values(data).reduce((sum, cust) => sum + (cust.invoices || []).filter(inv => inv.description !== "دفعة تحصيل").reduce((s, inv) => s + (inv.paid || 0), 0), 0);
+      const remaining = total - paid;
+      document.getElementById("generalStats").innerHTML = `
+        <div><i class="fas fa-coins"></i> الإجمالي: ${total || 0}</div>
+        <div><i class="fas fa-check-circle"></i> المدفوع: ${paid || 0}</div>
+        <div><i class="fas fa-hourglass-half"></i> المتبقي: ${remaining || 0}</div>
+      `;
+    }
+
+    // تحميل العملاء عند بدء التشغيل
+    window.onload = function() {
+      renderCustomers();
+    };
   </script>
 </body>
 </html>
