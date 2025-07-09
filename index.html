@@ -2,137 +2,42 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>نظام العملاء والفواتير - مطبعة طارق</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام فواتير طارق - ربط Firebase</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
-  <style>
-    body { font-family: Arial; direction: rtl; background: #f0f0f0; padding: 20px; }
-    h2 { text-align: center; }
-    .box { background: #fff; padding: 20px; margin: 20px auto; border-radius: 10px; max-width: 600px; box-shadow: 0 2px 6px #ccc; }
-    input, select, button { padding: 10px; width: 95%; margin: 8px 0; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #28a745; color: white; border: none; cursor: pointer; }
-    button:hover { background: #218838; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
-    th { background: #eee; }
-  </style>
 </head>
 <body>
-  <h2>نظام إدارة العملاء والفواتير</h2>
+  <h1>🔥 نظام فواتير طارق مربوط بـ Firebase 🔥</h1>
+  <p id="status">⏳ جاري الاتصال بـ Firebase...</p>
 
-  <div class="box">
-    <h3>➕ إضافة عميل</h3>
-    <input id="clientName" placeholder="اسم العميل" />
-    <input id="clientPhone" placeholder="رقم الهاتف" />
-    <input id="clientAddress" placeholder="العنوان" />
-    <button onclick="addClient()">إضافة العميل</button>
-  </div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBUhkNuW4HmYe7YtErEYALrsnc7dOhXxRk",
+      authDomain: "tarek0.firebaseapp.com",
+      databaseURL: "https://tarek0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tarek0",
+      storageBucket: "tarek0.firebasestorage.app",
+      messagingSenderId: "401049849658",
+      appId: "1:401049849658:web:16ba28dd7fee3b8f20ca03",
+      measurementId: "G-38CV51MHB6"
+    };
 
-  <div class="box">
-    <h3>🧾 إضافة فاتورة</h3>
-    <select id="clientSelect"><option value="">اختر العميل</option></select>
-    <input id="invoiceService" placeholder="الخدمة أو المنتج" />
-    <input id="invoiceAmount" type="number" placeholder="المبلغ المطلوب" />
-    <input id="invoicePaid" type="number" placeholder="المبلغ المدفوع" />
-    <button onclick="addInvoice()">إضافة الفاتورة</button>
-  </div>
-  <div class="box">
-    <h3>📋 قائمة العملاء</h3>
-    <table id="clientsTable">
-      <thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>فواتيره</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      const db = firebase.database(app);
 
-  <div class="box" id="invoiceBox" style="display:none;">
-    <h3 id="invoiceTitle">فواتير العميل</h3>
-    <table id="invoiceTable">
-      <thead><tr><th>الخدمة</th><th>المبلغ</th><th>المدفوع</th><th>التاريخ</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBUhkNuW4HmYe7YtErEYALrsnc7dOhXxRk",
-    authDomain: "tarek0.firebaseapp.com",
-    databaseURL: "https://tarek0-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "tarek0",
-    storageBucket: "tarek0.firebasestorage.app",
-    messagingSenderId: "401049849658",
-    appId: "1:401049849658:web:16ba28dd7fee3b8f20ca03"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+      const demoRef = db.ref("demo");
 
-  function addClient() {
-    const name = document.getElementById('clientName').value;
-    const phone = document.getElementById('clientPhone').value;
-    const address = document.getElementById('clientAddress').value;
-    if (!name || !phone) return alert("يرجى إدخال الاسم والهاتف");
-    const ref = db.ref("clients").push();
-    ref.set({ name, phone, address, createdAt: new Date().toISOString() });
-    alert("✅ تم حفظ العميل");
-    document.getElementById('clientName').value = "";
-    document.getElementById('clientPhone').value = "";
-    document.getElementById('clientAddress').value = "";
-  }
-
-  function addInvoice() {
-    const clientId = document.getElementById("clientSelect").value;
-    const service = document.getElementById("invoiceService").value;
-    const amount = document.getElementById("invoiceAmount").value;
-    const paid = document.getElementById("invoicePaid").value || 0;
-    if (!clientId || !service || !amount) return alert("يرجى ملء جميع البيانات");
-    const ref = db.ref("invoices/" + clientId).push();
-    ref.set({ service, amount, paid, date: new Date().toLocaleDateString() });
-    alert("✅ تم حفظ الفاتورة");
-    document.getElementById("invoiceService").value = "";
-    document.getElementById("invoiceAmount").value = "";
-    document.getElementById("invoicePaid").value = "";
-  }
-
-  function loadClients() {
-    const table = document.querySelector("#clientsTable tbody");
-    const select = document.getElementById("clientSelect");
-    table.innerHTML = "";
-    select.innerHTML = "<option value=''>اختر العميل</option>";
-    db.ref("clients").on("value", snap => {
-      table.innerHTML = "";
-      snap.forEach(child => {
-        const data = child.val();
-        const id = child.key;
-        select.innerHTML += `<option value="${id}">${data.name}</option>`;
-        table.innerHTML += `<tr>
-          <td>${data.name}</td>
-          <td>${data.phone}</td>
-          <td>${data.address || ''}</td>
-          <td><button onclick="viewInvoices('${id}', '${data.name}')">عرض</button></td>
-        </tr>`;
-      });
-    });
-  }
-
-  function viewInvoices(clientId, clientName) {
-    const box = document.getElementById("invoiceBox");
-    const table = document.querySelector("#invoiceTable tbody");
-    document.getElementById("invoiceTitle").innerText = "فواتير: " + clientName;
-    table.innerHTML = "";
-    db.ref("invoices/" + clientId).once("value", snap => {
-      snap.forEach(child => {
-        const i = child.val();
-        table.innerHTML += `<tr>
-          <td>${i.service}</td>
-          <td>${i.amount}</td>
-          <td>${i.paid}</td>
-          <td>${i.date}</td>
-        </tr>`;
-      });
-    });
-    box.style.display = "block";
-  }
-
-  loadClients();
-</script>
+      demoRef.set({ message: "تم الربط بنجاح" })
+        .then(() => {
+          document.getElementById("status").innerText = "✅ تم حفظ البيانات في Firebase.";
+        })
+        .catch((err) => {
+          document.getElementById("status").innerText = "❌ خطأ أثناء الحفظ: " + err.message;
+        });
+    } catch (e) {
+      document.getElementById("status").innerText = "❌ فشل التهيئة: " + e.message;
+    }
+  </script>
 </body>
 </html>
