@@ -94,4 +94,45 @@
 
   function loadClients() {
     const table = document.querySelector("#clientsTable tbody");
-    const select = documen
+    const select = document.getElementById("clientSelect");
+    table.innerHTML = "";
+    select.innerHTML = "<option value=''>اختر العميل</option>";
+    db.ref("clients").on("value", snap => {
+      table.innerHTML = "";
+      snap.forEach(child => {
+        const data = child.val();
+        const id = child.key;
+        select.innerHTML += `<option value="${id}">${data.name}</option>`;
+        table.innerHTML += `<tr>
+          <td>${data.name}</td>
+          <td>${data.phone}</td>
+          <td>${data.address || ''}</td>
+          <td><button onclick="viewInvoices('${id}', '${data.name}')">عرض</button></td>
+        </tr>`;
+      });
+    });
+  }
+
+  function viewInvoices(clientId, clientName) {
+    const box = document.getElementById("invoiceBox");
+    const table = document.querySelector("#invoiceTable tbody");
+    document.getElementById("invoiceTitle").innerText = "فواتير: " + clientName;
+    table.innerHTML = "";
+    db.ref("invoices/" + clientId).once("value", snap => {
+      snap.forEach(child => {
+        const i = child.val();
+        table.innerHTML += `<tr>
+          <td>${i.service}</td>
+          <td>${i.amount}</td>
+          <td>${i.paid}</td>
+          <td>${i.date}</td>
+        </tr>`;
+      });
+    });
+    box.style.display = "block";
+  }
+
+  loadClients();
+</script>
+</body>
+</html>
