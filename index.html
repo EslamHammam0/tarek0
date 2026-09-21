@@ -18,7 +18,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .card{background:var(--c);padding:28px;border-radius:12px;width:min(360px,92vw);text-align:center}
 header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 16px;background:var(--ink);color:#fff}
 header h1{font-size:18px;margin:0 8px 0 0}header input{flex:1;min-width:160px;max-width:320px}
-header button{background:#ffffff22}
+header button{background:#ffffff22}header button.ghost{color:#fff;border:1px solid #ffffff66}
+.warn{background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center}
+#banner{background:#f8d7da;color:#842029;font-weight:700}
 main{padding:16px;max-width:1100px;margin:auto}
 .cards{display:flex;flex-wrap:wrap;gap:10px}
 .cards div{flex:1;min-width:140px;background:var(--c);border-radius:8px;padding:12px;border-right:4px solid var(--ink)}
@@ -50,20 +52,22 @@ dialog::backdrop{background:#000a}
 <div id="login">
   <div class="card">
     <h2>مطبعة طارق أبوهمام</h2>
-    <input id="lu" type="email" placeholder="البريد الإلكتروني">
-    <input id="lp" type="password" placeholder="كلمة المرور">
+    <input id="lu" type="email" autocomplete="username" placeholder="البريد الإلكتروني">
+    <input id="lp" type="password" autocomplete="current-password" placeholder="كلمة المرور">
     <button id="lb">دخول</button>
   </div>
 </div>
 <div id="app" hidden>
   <header>
     <h1>مطبعة طارق أبوهمام</h1>
-    <input id="q" placeholder="ابحث بالاسم أو الهاتف">
+    <input id="q" name="client-search" autocomplete="off" placeholder="ابحث بالاسم أو الهاتف">
     <button data-a="newc">+ عميل</button>
     <button data-a="prices">الأسعار</button>
     <button data-a="migrate" class="ghost">استيراد القديم</button>
     <button data-a="out" class="ghost">خروج</button>
   </header>
+  <div id="banner" hidden></div>
+  <div id="mig" class="warn" hidden>لم تُستورد فواتير النظام القديم بعد، لذلك تظهر الأرصدة صفراً. <button data-a="migrate">استيراد الآن</button></div>
   <main>
     <section id="stats" class="cards"></section>
     <div class="tabs">
@@ -114,6 +118,7 @@ const S = { clients: {}, orders: {}, payments: {}, prices: {}, filter: 'debt', q
 const METHODS = ['كاش', 'فودافون كاش', 'إنستاباي', 'تحويل بنكي'];
 const dlg = $('#dlg');
 let offs = [];
+const banner = t => { const b = $('#banner'); b.hidden = false; b.textContent = '⚠️ ' + t; };
 
 /* ---------- بيانات ---------- */
 const list = o => Object.entries(o).filter(([, v]) => !v.deleted).map(([id, v]) => ({ id, ...v }));
@@ -135,7 +140,7 @@ function stat(cid) {
 function live(path, key) {
   const r = db.ref(path);
   r.on('value', s => { S[key] = s.val() || {}; render(); if (dlg.open && dlg.dataset.v === 'st') showStatement(S.cid); },
-    e => toast(e.message, 'err'));
+    e => banner(`تعذّرت قراءة «${path}» (${e.code || e.message}). غالباً قواعد قاعدة البيانات (Rules) تمنع الوصول؛ راجع تعليمات README.`));
   offs.push(() => r.off());
 }
 
@@ -151,11 +156,12 @@ function render() {
   const T = all.reduce((t, { s }) => ({ b: t.b + s.billed, p: t.p + s.paid, late: t.late + (s.age > 15 && s.bal > 0 ? 1 : 0) }), { b: 0, p: 0, late: 0 });
   $('#stats').innerHTML = `<div>الفواتير<b>${money(T.b)}</b></div><div>المحصّل<b>${money(T.p)}</b></div>
     <div>المتبقي<b>${money(T.b - T.p)}</b></div><div>متأخرون +15 يوم<b class="${T.late ? 'neg' : ''}">${T.late}</b></div>`;
+  $('#mig').hidden = !(S.migrated !== true && all.length && !Object.keys(S.orders).length);
   $('#clients tbody').innerHTML = rows.map(({ c, s }) => `<tr>
     <td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${esc(c.clientType)}</td><td>${money(s.billed)}</td>
     <td class="${s.bal > 0 ? 'neg' : ''}">${money(s.bal)}</td><td class="${s.age > 15 ? 'neg' : ''}">${s.age == null ? '-' : s.age + ' يوم'}</td>
     <td><button data-a="open" data-id="${c.id}">كشف الحساب</button><button class="ghost" data-a="editc" data-id="${c.id}">تعديل</button><button class="ghost" data-a="delc" data-id="${c.id}">حذف</button></td></tr>`
-  ).join('') || '<tr><td colspan="7">لا توجد نتائج. أضف عميلاً أو غيّر الفلتر.</td></tr>';
+  ).join('') || '<tr><td colspan="7">' + (all.length && S.filter === 'debt' && !q ? 'لا توجد مديونية حالياً. اضغط «كل العملاء» لعرض الجميع.' : 'لا توجد نتائج. أضف عميلاً أو غيّر البحث.') + '</td></tr>';
 }
 
 /* ---------- النوافذ ---------- */
@@ -260,6 +266,7 @@ function pricesForm() {
 async function migrate() {
   if ((await db.ref('meta/migrated').once('value')).val()) return toast('تم الاستيراد من قبل', 'err');
   if (!confirm('استيراد الفواتير والتحصيلات من النظام القديم؟ لا تكرر هذه العملية.')) return;
+  toast('جارٍ الاستيراد… لا تغلق الصفحة');
   const old = (await db.ref('invoices').once('value')).val() || {}; let n = 0;
   for (const [cid, recs] of Object.entries(old)) for (const r of Object.values(recs)) {
     if (r.isPayment) await db.ref('payments').push({ clientId: cid, amount: num(r.amount), method: 'كاش', date: r.date || today(), note: r.desc || '', legacy: true });
@@ -338,6 +345,7 @@ dlg.addEventListener('input', e => {
   calc();
 });
 $('#q').addEventListener('input', e => { S.q = e.target.value.trim(); render(); });
+$('#lp').addEventListener('keydown', e => e.key === 'Enter' && $('#lb').click());
 $('#lb').addEventListener('click', () =>
   auth.signInWithEmailAndPassword($('#lu').value.trim(), $('#lp').value)
     .catch(() => toast('البريد أو كلمة المرور غير صحيحة', 'err')));
@@ -346,8 +354,8 @@ $('#lb').addEventListener('click', () =>
 auth.onAuthStateChanged(u => {
   $('#login').hidden = !!u; $('#app').hidden = !u;
   offs.forEach(f => f()); offs = [];
-  if (u) ['clients', 'orders', 'payments', 'prices'].forEach(k => live(k, k));
-  else { Object.assign(S, { clients: {}, orders: {}, payments: {}, prices: {}, cid: null }); dlg.open && dlg.close(); $('#lp').value = ''; }
+  if (u) { ['clients', 'orders', 'payments', 'prices'].forEach(k => live(k, k)); live('meta/migrated', 'migrated'); }
+  else { Object.assign(S, { clients: {}, orders: {}, payments: {}, prices: {}, cid: null }); dlg.open && dlg.close(); $('#lp').value = ''; $('#banner').hidden = true; }
 });
 
 </script>
