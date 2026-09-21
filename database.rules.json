@@ -1,0 +1,6 @@
+{
+  "rules": {
+    ".read": "auth != null && auth.uid === 'ضع_UID_الخاص_بك_هنا'",
+    ".write": "auth != null && auth.uid === 'ضع_UID_الخاص_بك_هنا'"
+  }
+}
